@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  financial-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: savinco/financial-backend:latest
+    container_name: financial-backend
+    ports:
+      - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
+    environment:
+      # Application
+      - APP_NAME=${APP_NAME:-financial-backend}
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      
+      # Database
+      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://postgres:5432/savinco_financial}
+      - DATABASE_USERNAME=${DATABASE_USERNAME:-postgres}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - DATABASE_DRIVER=${DATABASE_DRIVER:-org.postgresql.Driver}
+      
+      # JPA
+      - JPA_DDL_AUTO=${JPA_DDL_AUTO:-update}
+      - JPA_SHOW_SQL=${JPA_SHOW_SQL:-false}
+      - HIBERNATE_DIALECT=${HIBERNATE_DIALECT:-org.hibernate.dialect.PostgreSQLDialect}
+      - HIBERNATE_FORMAT_SQL=${HIBERNATE_FORMAT_SQL:-false}
+      
+      # Swagger
+      - SWAGGER_ENABLED=${SWAGGER_ENABLED:-true}
+      - SWAGGER_API_DOCS_PATH=${SWAGGER_API_DOCS_PATH:-/api-docs}
+      - SWAGGER_UI_PATH=${SWAGGER_UI_PATH:-/swagger-ui.html}
+      
+      # Actuator
+      - ACTUATOR_ENDPOINTS=${ACTUATOR_ENDPOINTS:-health,info}
+      - ACTUATOR_HEALTH_DETAILS=${ACTUATOR_HEALTH_DETAILS:-when-authorized}
+      
+      # Logging
+      - LOG_LEVEL_ROOT=${LOG_LEVEL_ROOT:-INFO}
+      - LOG_LEVEL_APP=${LOG_LEVEL_APP:-INFO}
+      - LOG_LEVEL_SPRING_WEB=${LOG_LEVEL_SPRING_WEB:-INFO}
+      - LOG_LEVEL_HIBERNATE_SQL=${LOG_LEVEL_HIBERNATE_SQL:-WARN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT:-8080}/api/v1/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    networks:
+      - financial-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: financial-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-savinco_financial}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - financial-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  financial-network:
+    driver: bridge
