@@ -1,0 +1,579 @@
+---
+description: Rules for Testing - Object Mothers, Unit Tests, Integration Tests, Acceptance Tests
+globs:
+  - "**/test/**/*.java"
+  - "**/*Test.java"
+  - "**/*Tests.java"
+alwaysApply: false
+---
+
+# Testing Patterns Rules
+
+## ⚠️ Nota para este Proyecto
+
+**BDD con Cucumber + Gherkin es OBLIGATORIO e INVARIABLE.**
+
+Ver `bdd-gherkin.mdc` para reglas completas de BDD.
+
+Los patrones de testing aquí documentados (Object Mothers, Unit Tests, Integration Tests) son complementarios a BDD.
+
+**Flujo obligatorio:**
+1. Discovery Workshop
+2. Escribir .feature file
+3. Crear step definitions (RED)
+4. Implementar código (GREEN)
+5. Refactor
+
+---
+
+## Test Structure
+
+```bash
+src/test/java/com/example/
+└── [domain-context]/
+    └── [aggregate-plural]/
+        ├── domain/           # Object Mothers
+        │   ├── OrderMother.java
+        │   └── MoneyMother.java
+        ├── application/      # Use Case tests
+        │   ├── CreateOrderUseCaseTest.java
+        │   └── SendConfirmationEmailHandlerTest.java
+        └── infrastructure/   # Repository tests
+            └── JpaOrderRepositoryTest.java
+```
+
+---
+
+## Object Mothers
+
+### Location
+
+`tests/contexts/[context]/[module]/domain/`
+
+### Rules
+
+**ALWAYS:**
+
+- Create an Object Mother for each aggregate and value object
+- Provide realistic test data
+- Include common scenarios as methods
+- Use `UuidMother` for IDs
+
+### Aggregate Mother Template
+
+```java
+public class OrderMother {
+    public static Order create(OrderMotherParams params) {
+        OrderMotherParams actualParams = params != null ? params : new OrderMotherParams();
+        
+        return Order.fromPrimitives(OrderPrimitives.builder()
+            .id(actualParams.getId() != null ? actualParams.getId() : UuidMother.random())
+            .customerId(actualParams.getCustomerId() != null ? actualParams.getCustomerId() : "customer-123")
+            .items(actualParams.getItems() != null ? actualParams.getItems() : List.of(
+                new OrderItemData("prod-1", 2, 10.0)
+            ))
+            .status(actualParams.getStatus() != null ? actualParams.getStatus() : "PENDING")
+            .build());
+    }
+
+    // Common scenarios
+    public static Order pending() {
+        return create(OrderMotherParams.builder().status("PENDING").build());
+    }
+
+    public static Order confirmed() {
+        return create(OrderMotherParams.builder().status("CONFIRMED").build());
+    }
+
+    public static Order delivered() {
+        return create(OrderMotherParams.builder().status("DELIVERED").build());
+    }
+
+    public static Order cancelled() {
+        return create(OrderMotherParams.builder().status("CANCELLED").build());
+    }
+
+    public static Order withItems(List<OrderItemData> items) {
+        return create(OrderMotherParams.builder().items(items).build());
+    }
+
+    public static Order withTotal(double total) {
+        // Create items that sum to the desired total
+        return create(OrderMotherParams.builder()
+            .items(List.of(new OrderItemData("prod-1", 1, total)))
+            .build());
+    }
+}
+```
+
+### Value Object Mother Template
+
+```java
+public class MoneyMother {
+    public static Money create(Double value) {
+        return Money.create(value != null ? value : random());
+    }
+
+    public static double random() {
+        return Math.floor(Math.random() * 1000) + 1;
+    }
+
+    public static Money zero() {
+        return Money.create(0.0);
+    }
+
+    public static double negative() {
+        return -Math.floor(Math.random() * 100) - 1;
+    }
+}
+
+public class OrderIdMother {
+    public static OrderId create(String value) {
+        return new OrderId(value != null ? value : UuidMother.random());
+    }
+
+    public static OrderId random() {
+        return new OrderId(UuidMother.random());
+    }
+}
+```
+
+### Shared Mothers
+
+```java
+public class UuidMother {
+    public static String random() {
+        return UUID.randomUUID().toString();
+    }
+
+    public static String fixed() {
+        return "550e8400-e29b-41d4-a716-446655440000";
+    }
+}
+
+public class DateMother {
+    public static LocalDateTime random() {
+        return LocalDateTime.now().minusSeconds((long) (Math.random() * 100000));
+    }
+
+    public static LocalDateTime now() {
+        return LocalDateTime.now();
+    }
+
+    public static LocalDateTime yesterday() {
+        return LocalDateTime.now().minusDays(1);
+    }
+}
+```
+
+---
+
+## Unit Tests (Domain)
+
+### Rules
+
+**ALWAYS:**
+
+- Test aggregate creation and factory methods
+- Test business methods and state transitions
+- Test invariant enforcement
+- Test domain event emission
+- Use Object Mothers for test data
+
+### Aggregate Unit Test Template
+
+```java
+@ExtendWith(MockitoExtension.class)
+class OrderTest {
+    @Test
+    void shouldCreatePendingOrder() {
+        Order order = Order.create(OrderCreationProps.builder()
+            .customerId("customer-123")
+            .items(List.of(new OrderItemData("prod-1", 2, 10.0)))
+            .build());
+
+        assertEquals("PENDING", order.getStatus().getValue());
+        assertEquals(20.0, order.getTotal().getValue());
+    }
+
+    @Test
+    void shouldEmitOrderCreatedEvent() {
+        Order order = Order.create(OrderCreationProps.builder()
+            .customerId("customer-123")
+            .items(List.of(new OrderItemData("prod-1", 2, 10.0)))
+            .build());
+
+        List<DomainEvent> events = order.pullDomainEvents();
+        
+        assertEquals(1, events.size());
+        assertInstanceOf(OrderCreatedEvent.class, events.get(0));
+        assertEquals(order.getId().getValue(), ((OrderCreatedEvent) events.get(0)).getOrderId());
+    }
+
+    @Test
+    void shouldThrowWhenItemsAreEmpty() {
+        assertThrows(OrderMustHaveItemsException.class, () -> 
+            Order.create(OrderCreationProps.builder()
+                .customerId("customer-123")
+                .items(Collections.emptyList())
+                .build())
+        );
+    }
+
+    @Test
+    void shouldConfirmPendingOrder() {
+        Order order = OrderMother.pending();
+        
+        order.confirm();
+        
+        assertEquals("CONFIRMED", order.getStatus().getValue());
+    }
+
+    @Test
+    void shouldEmitOrderConfirmedEvent() {
+        Order order = OrderMother.pending();
+        
+        order.confirm();
+        
+        List<DomainEvent> events = order.pullDomainEvents();
+        assertTrue(events.stream().anyMatch(e -> e instanceof OrderConfirmedEvent));
+    }
+
+    @Test
+    void shouldThrowWhenOrderIsNotPending() {
+        Order order = OrderMother.confirmed();
+        
+        assertThrows(OnlyPendingOrdersCanBeConfirmedException.class, order::confirm);
+    }
+}
+```
+
+### Value Object Unit Test Template
+
+```typescript
+describe('Money', () => {
+  it('should create valid money', () => {
+    const money = Money.create(100);
+    
+    expect(money.value).toBe(100);
+  });
+
+  it('should throw for negative amount', () => {
+    expect(() => Money.create(-10)).toThrow(InvalidMoneyError);
+  });
+
+  it('should throw for NaN', () => {
+    expect(() => Money.create(NaN)).toThrow(InvalidMoneyError);
+  });
+
+  it('should add amounts correctly', () => {
+    const money1 = Money.create(100);
+    const money2 = Money.create(50);
+    
+    const result = money1.add(money2);
+    
+    expect(result.value).toBe(150);
+  });
+
+  it('should subtract amounts correctly', () => {
+    const money1 = Money.create(100);
+    const money2 = Money.create(30);
+    
+    const result = money1.subtract(money2);
+    
+    expect(result.value).toBe(70);
+  });
+});
+```
+
+---
+
+## Integration Tests (Application)
+
+### Rules
+
+**ALWAYS:**
+
+- Test use cases with mocked dependencies
+- Verify event publication
+- Test error scenarios
+- Use spies to verify interactions
+
+### Use Case Integration Test Template
+
+```typescript
+describe('CreateOrder', () => {
+  let createOrder: CreateOrder;
+  let orderRepository: jest.Mocked<OrderRepository>;
+  let inventoryService: jest.Mocked<InventoryDomainService>;
+  let eventPublisher: jest.Mocked<EventPublisher>;
+
+  beforeEach(() => {
+    orderRepository = {
+      save: jest.fn().mockResolvedValue(Right(undefined)),
+      findById: jest.fn(),
+    } as any;
+    
+    inventoryService = {
+      checkAvailability: jest.fn(),
+    } as any;
+    
+    eventPublisher = {
+      publish: jest.fn(),
+    } as any;
+    
+    createOrder = new CreateOrder(
+      orderRepository,
+      inventoryService,
+      eventPublisher
+    );
+  });
+
+  it('should return Right with order when stock is available', async () => {
+    inventoryService.checkAvailability.mockResolvedValue(true);
+
+    const result = await createOrder.call({
+      customerId: 'customer-123',
+      items: [{ productId: 'prod-1', quantity: 2 }]
+    });
+
+    expect(result.isRight()).toBe(true);
+    expect(orderRepository.save).toHaveBeenCalled();
+  });
+
+  it('should publish OrderCreatedEvent on success', async () => {
+    inventoryService.checkAvailability.mockResolvedValue(true);
+
+    await createOrder.call({
+      customerId: 'customer-123',
+      items: [{ productId: 'prod-1', quantity: 2 }]
+    });
+
+    expect(eventPublisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: 'order.created'
+      })
+    );
+  });
+
+  it('should return Left with failure when stock unavailable', async () => {
+    inventoryService.checkAvailability.mockResolvedValue(false);
+
+    const result = await createOrder.call({
+      customerId: 'customer-123',
+      items: [{ productId: 'prod-1', quantity: 100 }]
+    });
+
+    expect(result.isLeft()).toBe(true);
+  });
+
+  it('should publish failure event when validation fails', async () => {
+    inventoryService.checkAvailability.mockResolvedValue(false);
+
+    await createOrder.call({
+      customerId: 'customer-123',
+      items: [{ productId: 'prod-1', quantity: 100 }]
+    });
+
+    expect(eventPublisher.publish).toHaveBeenCalledWith(
+      expect.any(OrderOperationFailed)
+    );
+  });
+
+  it('should not save order when validation fails', async () => {
+    inventoryService.checkAvailability.mockResolvedValue(false);
+
+    await createOrder.call({
+      customerId: 'customer-123',
+      items: [{ productId: 'prod-1', quantity: 100 }]
+    });
+
+    expect(orderRepository.save).not.toHaveBeenCalled();
+  });
+});
+```
+
+### Event Handler Integration Test Template
+
+```typescript
+describe('SendOrderConfirmationEmailHandler', () => {
+  let handler: SendOrderConfirmationEmailHandler;
+  let emailService: jest.Mocked<EmailService>;
+  let customerRepository: jest.Mocked<CustomerRepository>;
+
+  beforeEach(() => {
+    emailService = {
+      send: jest.fn().mockResolvedValue(undefined),
+    } as any;
+    
+    customerRepository = {
+      findById: jest.fn(),
+    } as any;
+    
+    handler = new SendOrderConfirmationEmailHandler(
+      emailService,
+      customerRepository
+    );
+  });
+
+  it('should send confirmation email', async () => {
+    customerRepository.findById.mockResolvedValue(
+      CustomerMother.create({ email: 'test@example.com' })
+    );
+
+    const event = new OrderCreatedEvent(
+      'order-123',
+      'customer-123',
+      [{ productId: 'prod-1', quantity: 2, unitPrice: 10 }],
+      20
+    );
+
+    await handler.handle(event);
+
+    expect(emailService.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'test@example.com',
+        subject: 'Order Confirmation'
+      })
+    );
+  });
+
+  it('should skip gracefully when customer not found', async () => {
+    customerRepository.findById.mockResolvedValue(null);
+
+    const event = new OrderCreatedEvent(
+      'order-123',
+      'unknown-customer',
+      [],
+      0
+    );
+
+    // Should not throw
+    await expect(handler.handle(event)).resolves.not.toThrow();
+    expect(emailService.send).not.toHaveBeenCalled();
+  });
+});
+```
+
+---
+
+## Repository Integration Tests
+
+```typescript
+describe('MongoOrderRepository', () => {
+  let repository: MongoOrderRepository;
+  let connection: MongoClient;
+
+  beforeAll(async () => {
+    connection = await MongoClient.connect(process.env.MONGO_TEST_URL!);
+    repository = new MongoOrderRepository(connection.db('test'));
+  });
+
+  afterAll(async () => {
+    await connection.close();
+  });
+
+  beforeEach(async () => {
+    await connection.db('test').collection('orders').deleteMany({});
+  });
+
+  it('should save and retrieve an order', async () => {
+    const order = OrderMother.create({ id: 'order-123' });
+    
+    await repository.save(order);
+    const retrieved = await repository.findById(new OrderId('order-123'));
+    
+    expect(retrieved).not.toBeNull();
+    expect(retrieved!.id.value).toBe('order-123');
+  });
+
+  it('should return null for non-existent order', async () => {
+    const retrieved = await repository.findById(new OrderId('non-existent'));
+    
+    expect(retrieved).toBeNull();
+  });
+
+  it('should find orders by customer', async () => {
+    const order1 = OrderMother.create({ customerId: 'customer-1' });
+    const order2 = OrderMother.create({ customerId: 'customer-1' });
+    const order3 = OrderMother.create({ customerId: 'customer-2' });
+    
+    await Promise.all([
+      repository.save(order1),
+      repository.save(order2),
+      repository.save(order3)
+    ]);
+    
+    const orders = await repository.findByCustomerId(new CustomerId('customer-1'));
+    
+    expect(orders).toHaveLength(2);
+  });
+});
+```
+
+---
+
+## Acceptance Tests (BDD) - OBLIGATORIO
+
+**⚠️ BDD con Cucumber + Gherkin es INVARIABLE para este proyecto.**
+
+Ver `bdd-gherkin.mdc` para reglas completas.
+
+**Flujo obligatorio:**
+1. Discovery Workshop (Example Mapping)
+2. Aplicar Decision Framework
+3. Escribir .feature file (Gherkin)
+4. Validar con Product Owner
+5. Crear step definitions (RED - deben fallar)
+6. Implementar código (GREEN - hasta que pasen)
+7. Refactor
+
+**NUNCA escribir código sin primero tener un archivo `.feature` con escenarios Gherkin validados.**
+
+### Key Integration Points
+
+```typescript
+// In step definitions, use Object Mothers
+Given('the product {string} has {int} units in stock', 
+  async function(productId: string, stock: number) {
+    await this.inventoryRepository.save(
+      ProductMother.create({ id: productId, stock })
+    );
+  }
+);
+
+// Verify async behavior with polling
+Then('I should receive an order confirmation email eventually',
+  async function() {
+    const received = await waitFor(async () => {
+      const emails = await this.emailService.getSentEmails(this.customerEmail);
+      return emails.some(e => e.subject.includes('Order Confirmation'));
+    }, 10000);
+    
+    expect(received).toBe(true);
+  }
+);
+```
+
+---
+
+## Critical Rules
+
+❌ **NEVER:**
+
+- Skip Object Mothers (use raw data)
+- Test implementation details
+- Skip event emission verification
+- Create tests that depend on order
+- Use real external services in unit tests
+
+✅ **ALWAYS:**
+
+- **Escribir archivo .feature ANTES de cualquier código (BDD obligatorio)**
+- Create Object Mother for every entity/value object
+- Test all state transitions
+- Test error scenarios
+- Use mocks for external dependencies
+- Make tests independent and isolated
+- Use descriptive test names
+- Verify BDD tests pasan antes de considerar feature completa

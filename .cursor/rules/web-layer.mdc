@@ -1,0 +1,460 @@
+---
+description: Rules for Web Layer - Controllers, Routes, Swagger Documentation, Dependency Injection
+globs:
+  - "**/controller/**/*.java"
+  - "**/rest/**/*.java"
+  - "**/config/**/*.java"
+alwaysApply: false
+---
+
+# Web Application Layer Rules
+
+## Controllers
+
+### Location
+
+`src/main/java/<package>/<context>/infrastructure/inbound/controller/` or `src/main/java/<package>/controller/`
+
+### Rules
+
+**ALWAYS:**
+
+- Use Spring `@RestController` annotation
+- Use `@RequestMapping` or specific HTTP method annotations (`@GetMapping`, `@PostMapping`, etc.)
+- Receive dependencies through constructor with Lombok `@RequiredArgsConstructor`
+- Use DTOs for request/response (never domain objects directly)
+- Handle HTTP errors with `@ControllerAdvice` (global exception handler)
+- Call Use Cases directly or via Command/Query handlers
+
+**NEVER:**
+
+- Put business logic in controllers
+- Access repositories directly
+- Handle domain logic
+- Use `@Autowired` field injection
+
+### Controller Template
+
+```java
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+@Tag(name = "Orders", description = "Order management API")
+public class OrderController {
+    private final CreateOrderUseCase createOrderUseCase;
+
+    @PostMapping
+    @Operation(summary = "Create a new order")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Order created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "422", description = "Domain validation error")
+    })
+    public ResponseEntity<OrderResponse> createOrder(@RequestBody @Valid CreateOrderRequest request) {
+        CreateOrderResponse response = createOrderUseCase.run(
+            CreateOrderParams.builder()
+                .customerId(request.getCustomerId())
+                .items(request.getItems())
+                .build()
+        );
+        
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(OrderResponse.fromDomain(response.getOrder()));
+    }
+}
+```
+
+### Query Controller Template
+
+```java
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+public class OrderQueryController {
+    private final FindOrderUseCase findOrderUseCase;
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get order by ID")
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable String id) {
+        Order order = findOrderUseCase.run(new OrderId(id));
+        return ResponseEntity.ok(OrderResponse.fromDomain(order));
+    }
+}
+```
+
+### Global Exception Handler
+
+```java
+@ControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleOrderNotFound(OrderNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse(ex.getMessage()));
+    }
+    
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientStock(InsufficientStockException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(ex.getMessage()));
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("Validation error", ex.getBindingResult().getAllErrors()));
+    }
+}
+```
+
+---
+
+## Routes
+
+### Location
+
+Spring Boot automatically discovers `@RestController` classes. No manual route registration needed.
+
+### Rules
+
+**ALWAYS:**
+
+- Use `@RequestMapping` at class level for base path
+- Use HTTP method annotations at method level (`@GetMapping`, `@PostMapping`, etc.)
+- Follow REST conventions for endpoint design
+- Use SpringDoc OpenAPI for Swagger documentation (auto-generated from annotations)
+- Organize controllers by context/bounded context
+
+### Route Definition Example
+
+Routes are defined via annotations in controllers:
+
+```java
+@RestController
+@RequestMapping("/api/orders")  // Base path
+public class OrderController {
+    
+    @PostMapping  // POST /api/orders
+    public ResponseEntity<OrderResponse> create(@RequestBody CreateOrderRequest request) { ... }
+    
+    @GetMapping("/{id}")  // GET /api/orders/{id}
+    public ResponseEntity<OrderResponse> getById(@PathVariable String id) { ... }
+    
+    @GetMapping  // GET /api/orders?customerId=...
+    public ResponseEntity<List<OrderResponse>> search(@RequestParam Optional<String> customerId) { ... }
+    
+    @PostMapping("/{id}/confirm")  // POST /api/orders/{id}/confirm
+    public ResponseEntity<Void> confirm(@PathVariable String id) { ... }
+}
+```
+
+---
+
+## Swagger/OpenAPI Documentation
+
+### Rules
+
+**ALWAYS:**
+
+- Use SpringDoc OpenAPI (springdoc-openapi-starter-webmvc-ui)
+- Document endpoints using annotations: `@Operation`, `@ApiResponse`, `@Tag`
+- Documentation is auto-generated from annotations
+- Documentation available at `/swagger-ui.html` and `/v3/api-docs`
+- Use `@Schema` annotations on DTOs for better documentation
+
+### OpenAPI Configuration
+
+```java
+@Configuration
+public class OpenApiConfig {
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+            .info(new Info()
+                .title("Order Management API")
+                .version("1.0")
+                .description("API for managing orders"));
+    }
+}
+```
+
+### Controller Documentation Example
+
+**File:** `orders.swagger.yml`
+
+```yaml
+tags:
+  - name: Orders
+    description: Order management endpoints
+
+paths:
+  /orders:
+    put:
+      summary: Create a new order
+      description: Creates a new order with the provided items
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customerId
+                - items
+              properties:
+                customerId:
+                  type: string
+                  format: uuid
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
+      responses:
+        '201':
+          description: Order created successfully
+        '400':
+          description: Invalid request (e.g., insufficient stock)
+        '422':
+          description: Unprocessable entity (domain error)
+        '500':
+          description: Internal server error
+
+    get:
+      summary: Search orders
+      description: Search orders with filters and pagination
+      tags:
+        - Orders
+      parameters:
+        - in: query
+          name: customerId
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, delivered, cancelled]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Orders found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderListItem'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+
+  /orders/{id}:
+    get:
+      summary: Get order by ID
+      description: Retrieves an order by its unique identifier
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+
+  /orders/{id}/confirm:
+    post:
+      summary: Confirm order
+      description: Confirms a pending order
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order confirmed
+        '400':
+          description: Order cannot be confirmed
+        '404':
+          description: Order not found
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        total:
+          type: number
+        status:
+          type: string
+    OrderListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        customerName:
+          type: string
+        total:
+          type: number
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+```
+
+---
+
+## Dependency Injection (Spring Boot)
+
+### Location
+
+Spring Boot uses auto-configuration and component scanning. No manual DI registration needed.
+
+### Rules
+
+**ALWAYS:**
+
+- Use Spring annotations: `@Service`, `@Repository`, `@Component`, `@Controller`
+- Use constructor injection with Lombok `@RequiredArgsConstructor`
+- Use `@Configuration` classes for bean configuration when needed
+- Use `@Profile` for environment-specific beans
+- Use `@Qualifier` when multiple implementations exist
+
+**NEVER:**
+
+- Use `@Autowired` field injection (use constructor injection)
+- Manually create DI container registrations (Spring handles this)
+
+### Configuration Example
+
+```java
+@Configuration
+@Profile("production")
+public class ProductionConfig {
+    
+    @Bean
+    public EventBus eventBus(RabbitTemplate rabbitTemplate) {
+        return new RabbitMQEventBus(rabbitTemplate);
+    }
+    
+    @Bean
+    public OutboxPublisher outboxPublisher(
+        OutboxRepository outboxRepository,
+        EventBus eventBus,
+        Logger logger
+    ) {
+        return new OutboxPublisher(outboxRepository, eventBus, logger);
+    }
+}
+
+@Configuration
+@Profile("dev")
+public class DevelopmentConfig {
+    
+    @Bean
+    public EventBus eventBus() {
+        return new InMemoryEventBus();
+    }
+}
+```
+
+### Service Registration
+
+Services are automatically registered via annotations:
+
+```java
+@Service  // Automatically registered as bean
+@RequiredArgsConstructor
+public class CreateOrderUseCase {
+    private final OrderRepository orderRepository;  // Injected automatically
+    private final InventoryService inventoryService;
+}
+```
+
+---
+
+## Folder Structure
+
+```bash
+src/
+├── controllers/
+│   ├── OrderPutController.ts
+│   ├── OrderGetController.ts
+│   └── OrdersSearchController.ts
+├── routes/
+│   ├── orders.route.ts
+│   └── orders.swagger.yml
+├── dependency-injection/
+│   ├── apps/
+│   │   └── index.ts
+│   ├── Orders/
+│   │   └── index.ts
+│   ├── Shared/
+│   │   └── index.ts
+│   ├── application_dev.ts
+│   ├── application_prod.ts
+│   └── index.ts
+└── server.ts
+```
+
+---
+
+## Critical Rules
+
+❌ **NEVER:**
+
+- Put business logic in controllers
+- Access repositories directly from controllers
+- Skip error handling
+- Hardcode dependencies (use DI)
+- Skip Swagger documentation
+
+✅ **ALWAYS:**
+
+- Use Command/Query Bus for dispatching
+- Handle all error types appropriately
+- Document all endpoints with Swagger
+- Use DI container for all dependencies
+- Follow REST conventions
+- Create route + swagger file pairs

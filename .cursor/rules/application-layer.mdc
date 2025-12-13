@@ -1,0 +1,313 @@
+---
+description: Rules for Application Layer - Use Cases (Services), DTOs
+globs:
+  - "**/application/**/*.java"
+  - "**/service/**/*.java"
+alwaysApply: false
+---
+
+# Application Layer Rules - Layered Architecture
+
+## ⚠️ Nota para este Proyecto
+
+Este proyecto usa **Layered Architecture simple**:
+
+- ✅ Services (Use Cases) directos desde Controllers
+- ❌ NO Command/Query Handlers (CQRS)
+- ❌ NO Event Handlers (no hay eventos críticos)
+- ✅ DTOs simples para Request/Response
+
+---
+
+## Location
+
+`src/main/java/<package>/<context>/application/` o `src/main/java/<package>/service/`
+
+---
+
+## Use Cases (Services)
+
+**ALWAYS:**
+
+- ONE use case = ONE business action
+- Use Spring `@Service` annotation
+- Receive dependencies through constructor with Lombok `@RequiredArgsConstructor`
+- Implement `run()`, `execute()`, o métodos descriptivos con parámetros y return type
+- Follow service nomenclature: `FinancialDataService`, `CurrencyConverterService`
+- Use `@Transactional` for write operations
+- Throw domain exceptions on failure (caught by `@ControllerAdvice`)
+
+**NEVER:**
+
+- Put business logic aquí si es compleja (puede estar en Services o en entidades)
+- Access infrastructure directly (use repositories/interfaces)
+- Catch and swallow errors silently
+- Use `@Autowired` field injection (use constructor injection)
+
+### Standard Use Case Template
+
+```java
+@Service
+@RequiredArgsConstructor
+public class FinancialDataService {
+    private final FinancialDataRepository repository;
+    private final CurrencyConverterService currencyConverter;
+
+    @Transactional
+    public FinancialDataResponse create(FinancialDataRequest request) {
+        // Validar
+        if (repository.existsByCountryCode(request.getCountryCode())) {
+            throw new CountryAlreadyExistsException(request.getCountryCode());
+        }
+        
+        // Validar correspondencia país-moneda
+        Country country = Country.fromCode(request.getCountryCode());
+        if (!country.getCurrency().equals(request.getCurrencyCode())) {
+            throw new InvalidCountryCurrencyException(
+                request.getCountryCode(), 
+                request.getCurrencyCode()
+            );
+        }
+        
+        // Crear entidad
+        FinancialDataEntity entity = new FinancialDataEntity();
+        entity.setCountryCode(request.getCountryCode());
+        entity.setCurrencyCode(request.getCurrencyCode());
+        entity.setCapitalSaved(request.getCapitalSaved());
+        entity.setCapitalLoaned(request.getCapitalLoaned());
+        entity.setProfitsGenerated(request.getProfitsGenerated());
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+        
+        // Guardar
+        FinancialDataEntity saved = repository.save(entity);
+        
+        // Convertir a USD y retornar
+        return toResponse(saved);
+    }
+    
+    public List<FinancialDataResponse> findAll() {
+        return repository.findAll().stream()
+            .map(this::toResponse)
+            .toList();
+    }
+    
+    public FinancialDataResponse findByCountryCode(String countryCode) {
+        FinancialDataEntity entity = repository.findByCountryCode(countryCode)
+            .orElseThrow(() -> new CountryNotFoundException(countryCode));
+        return toResponse(entity);
+    }
+    
+    @Transactional
+    public FinancialDataResponse update(String countryCode, FinancialDataRequest request) {
+        FinancialDataEntity entity = repository.findByCountryCode(countryCode)
+            .orElseThrow(() -> new CountryNotFoundException(countryCode));
+        
+        entity.setCapitalSaved(request.getCapitalSaved());
+        entity.setCapitalLoaned(request.getCapitalLoaned());
+        entity.setProfitsGenerated(request.getProfitsGenerated());
+        entity.setUpdatedAt(LocalDateTime.now());
+        
+        FinancialDataEntity saved = repository.save(entity);
+        return toResponse(saved);
+    }
+    
+    @Transactional
+    public void delete(String countryCode) {
+        if (!repository.existsByCountryCode(countryCode)) {
+            throw new CountryNotFoundException(countryCode);
+        }
+        repository.deleteByCountryCode(countryCode);
+    }
+    
+    public ConsolidatedSummaryResponse getConsolidatedSummary() {
+        List<FinancialDataEntity> all = repository.findAll();
+        
+        BigDecimal totalCapitalSaved = BigDecimal.ZERO;
+        BigDecimal totalCapitalLoaned = BigDecimal.ZERO;
+        BigDecimal totalProfitsGenerated = BigDecimal.ZERO;
+        
+        List<CountrySummary> byCountry = new ArrayList<>();
+        
+        for (FinancialDataEntity entity : all) {
+            BigDecimal capitalSavedUSD = currencyConverter.convertToUSD(
+                entity.getCapitalSaved(), entity.getCurrencyCode());
+            BigDecimal capitalLoanedUSD = currencyConverter.convertToUSD(
+                entity.getCapitalLoaned(), entity.getCurrencyCode());
+            BigDecimal profitsUSD = currencyConverter.convertToUSD(
+                entity.getProfitsGenerated(), entity.getCurrencyCode());
+            
+            totalCapitalSaved = totalCapitalSaved.add(capitalSavedUSD);
+            totalCapitalLoaned = totalCapitalLoaned.add(capitalLoanedUSD);
+            totalProfitsGenerated = totalProfitsGenerated.add(profitsUSD);
+            
+            Country country = Country.fromCode(entity.getCountryCode());
+            byCountry.add(CountrySummary.builder()
+                .countryCode(entity.getCountryCode())
+                .countryName(country.getName())
+                .capitalSaved(capitalSavedUSD)
+                .capitalLoaned(capitalLoanedUSD)
+                .profitsGenerated(profitsUSD)
+                .build());
+        }
+        
+        BigDecimal grandTotal = totalCapitalSaved
+            .add(totalCapitalLoaned)
+            .add(totalProfitsGenerated);
+        
+        return ConsolidatedSummaryResponse.builder()
+            .totalCapitalSaved(totalCapitalSaved)
+            .totalCapitalLoaned(totalCapitalLoaned)
+            .totalProfitsGenerated(totalProfitsGenerated)
+            .grandTotal(grandTotal)
+            .byCountry(byCountry)
+            .build();
+    }
+    
+    private FinancialDataResponse toResponse(FinancialDataEntity entity) {
+        BigDecimal capitalSavedUSD = currencyConverter.convertToUSD(
+            entity.getCapitalSaved(), entity.getCurrencyCode());
+        BigDecimal capitalLoanedUSD = currencyConverter.convertToUSD(
+            entity.getCapitalLoaned(), entity.getCurrencyCode());
+        BigDecimal profitsUSD = currencyConverter.convertToUSD(
+            entity.getProfitsGenerated(), entity.getCurrencyCode());
+        
+        BigDecimal totalInUSD = capitalSavedUSD
+            .add(capitalLoanedUSD)
+            .add(profitsUSD);
+        
+        Country country = Country.fromCode(entity.getCountryCode());
+        
+        return FinancialDataResponse.builder()
+            .countryCode(entity.getCountryCode())
+            .countryName(country.getName())
+            .originalCurrency(entity.getCurrencyCode())
+            .capitalSaved(capitalSavedUSD)
+            .capitalLoaned(capitalLoanedUSD)
+            .profitsGenerated(profitsUSD)
+            .totalInUSD(totalInUSD)
+            .build();
+    }
+}
+```
+
+---
+
+## Request/Response DTOs
+
+**ALWAYS:**
+
+- Are simple data transfer objects (POJOs)
+- Use Lombok `@Data`, `@Value`, or `@Builder` annotations
+- Contain only necessary data
+- NEVER contain business logic
+- Use `static fromEntity()` or MapStruct for mapping
+- Use Java Records for immutable DTOs (Java 14+)
+- Add validation annotations (`@NotNull`, `@NotBlank`, `@DecimalMin`, etc.)
+
+### Request DTO
+
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class FinancialDataRequest {
+    @NotBlank
+    @Pattern(regexp = "ECU|ESP|PER|NPL", message = "Invalid country code")
+    private String countryCode;
+    
+    @NotBlank
+    @Pattern(regexp = "USD|EUR|PEN|NPR", message = "Invalid currency code")
+    private String currencyCode;
+    
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = true, message = "Capital saved must be positive")
+    private BigDecimal capitalSaved;
+    
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = true, message = "Capital loaned must be positive")
+    private BigDecimal capitalLoaned;
+    
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = true, message = "Profits generated must be positive")
+    private BigDecimal profitsGenerated;
+}
+```
+
+### Response DTO
+
+```java
+@Value
+@Builder
+public class FinancialDataResponse {
+    String countryCode;
+    String countryName;
+    String originalCurrency;
+    BigDecimal capitalSaved;
+    BigDecimal capitalLoaned;
+    BigDecimal profitsGenerated;
+    BigDecimal totalInUSD;
+}
+```
+
+### Summary Response DTO
+
+```java
+@Value
+@Builder
+public class ConsolidatedSummaryResponse {
+    BigDecimal totalCapitalSaved;
+    BigDecimal totalCapitalLoaned;
+    BigDecimal totalProfitsGenerated;
+    BigDecimal grandTotal;
+    List<CountrySummary> byCountry;
+    
+    @Value
+    @Builder
+    public static class CountrySummary {
+        String countryCode;
+        String countryName;
+        BigDecimal capitalSaved;
+        BigDecimal capitalLoaned;
+        BigDecimal profitsGenerated;
+    }
+}
+```
+
+---
+
+## Folder Structure
+
+```bash
+src/main/java/com/savinco/financial/application/
+├── service/
+│   ├── FinancialDataService.java
+│   └── CurrencyConverterService.java
+└── dto/
+    ├── FinancialDataRequest.java
+    ├── FinancialDataResponse.java
+    └── ConsolidatedSummaryResponse.java
+```
+
+---
+
+## Critical Rules
+
+❌ **NEVER (para este proyecto):**
+
+- Use Command/Query Handlers (CQRS no se usa)
+- Create Event Handlers (no hay eventos críticos)
+- Use Outbox Pattern (no aplica)
+- Put complex business logic in Services (puede estar en entidades o servicios dedicados)
+- Return domain entities directly (always use DTOs)
+
+✅ **ALWAYS (para este proyecto):**
+
+- Call Services directly from Controllers
+- Use Request/Response DTOs
+- Apply @Transactional for write operations
+- Throw domain exceptions (caught by @ControllerAdvice)
+- Validate input data with Bean Validation annotations
+- Use BigDecimal for monetary values
+- Convert currencies in Services (never in Controllers)

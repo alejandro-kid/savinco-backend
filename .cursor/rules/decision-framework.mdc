@@ -1,0 +1,252 @@
+---
+description: Architectural Decision Framework - ALWAYS apply BEFORE coding any feature
+globs:
+alwaysApply: true
+---
+
+# Decision Framework: Architectural Decisions BEFORE Coding
+
+## ⚠️ Nota para este Proyecto
+
+Este framework de decisión es útil para evaluar opciones, pero **para este proyecto específico** se ha decidido:
+
+- ✅ **Layered Architecture (3 capas)** - Simple y suficiente
+- ❌ **NO CQRS** - Queries simples, no hay necesidad de separar read/write
+- ❌ **NO Outbox Pattern** - Eventos no críticos, no se requiere garantía de entrega
+- ❌ **NO Read Models** - Queries simples con Repository Pattern
+
+Las decisiones de este framework que mencionan CQRS, Outbox, o Read Models **NO aplican para este proyecto**.
+
+---
+
+## Golden Rule
+
+> ⚠️ **ALWAYS** answer these questions BEFORE writing any code for a new feature
+
+## Question 1: What Type of Operation Is This?
+
+```bash
+[ ] COMMAND (Write Operation)
+    ├─ CREATE new resource
+    ├─ UPDATE existing resource
+    └─ DELETE resource
+    
+[ ] QUERY (Read Operation)
+    ├─ GET by ID
+    ├─ SEARCH with filters
+    └─ LIST with pagination
+```
+
+**Decision:** Para este proyecto, esto determina si es una operación de escritura (Service con @Transactional) o lectura (Service sin @Transactional). **NO se usan Command/Query Handlers (CQRS).**
+
+---
+
+## Question 2: For COMMANDS - Do You Need Validation Before Executing?
+
+```bash
+[ ] YES - Critical Validation Required
+    └─ Stock availability, balance check, permissions, uniqueness
+    └─ DECISION: Use SYNCHRONOUS validation
+    
+[ ] NO - Direct Execution
+    └─ Logs, simple events, auditing
+    └─ DECISION: Direct execution without pre-validation
+```
+
+---
+
+## Question 3: Where Is the Data You Need?
+
+```bash
+[ ] SAME BOUNDED CONTEXT
+    └─ Same database, same service
+    └─ DECISION: Use Domain Service (SYNCHRONOUS)
+    └─ Example:
+       boolean hasStock = inventoryService.checkStock(items);
+    
+[ ] DIFFERENT BOUNDED CONTEXT
+    └─ Different database, different service
+    └─ DECISION: HTTP/gRPC (SYNCHRONOUS) or Event (ASYNCHRONOUS)
+    └─ Example:
+       Customer customer = customerFeignClient.getCustomer(id);
+```
+
+**Critical Decision:**
+
+- If you need an IMMEDIATE response → **SYNCHRONOUS** (HTTP/gRPC)
+- If it's a side effect → **ASYNCHRONOUS** (Event)
+
+---
+
+## Question 4: Are the Events Critical?
+
+```bash
+[ ] CRITICAL EVENTS (Cannot be lost)
+    ├─ Processed payments
+    ├─ Generated invoices
+    ├─ Updated inventory
+    └─ DECISION: Use OUTBOX PATTERN
+    
+[ ] NON-CRITICAL EVENTS (Can occasionally be lost)
+    ├─ Confirmation emails
+    ├─ Push notifications
+    ├─ Analytics metrics
+    └─ DECISION: Use SIMPLE PUBLISH (fire & forget)
+```
+
+---
+
+## Question 5: For QUERIES - What Type of Query Is It?
+
+**⚠️ Para este proyecto:** Todas las queries son simples, se usa Repository Pattern siempre.
+
+```bash
+[ ] SIMPLE (1 aggregate, GetById, List all)
+    └─ DECISION: Use Repository Pattern (SIEMPRE para este proyecto)
+    └─ Example:
+       FinancialDataEntity entity = repository.findByCountryCode(code)
+           .orElseThrow(() -> new CountryNotFoundException(code));
+       return FinancialDataResponse.from(entity);
+    
+[ ] COMPLEX (multiple joins, filters, search)
+    └─ DECISION: NO APLICA para este proyecto (todas las queries son simples)
+    └─ Si fuera necesario: Usar Repository con queries JPA personalizadas
+```
+
+---
+
+## Decision Tree Summary
+
+**⚠️ Para este proyecto (simplificado):**
+
+```bash
+Operation Type?
+├─ COMMAND (Write)
+│  ├─ Need validation? → YES
+│  │  └─ Service with @Transactional (SYNC validation)
+│  │
+│  └─ Events? → NO (no hay eventos críticos en este proyecto)
+│
+└─ QUERY (Read)
+   └─ Repository Pattern (SIEMPRE - todas las queries son simples)
+```
+
+**Patrones NO usados en este proyecto:**
+- ❌ Outbox Pattern
+- ❌ Read Models (CQRS)
+- ❌ Event Bus
+- ❌ Command/Query Handlers
+
+---
+
+## Architectural Decisions Document Template
+
+**ALWAYS create this document BEFORE coding:**
+
+```markdown
+# Feature: [Feature Name]
+
+## Architectural Decisions
+
+### Operation Type
+- [ ] COMMAND (Write Operation)
+- [ ] QUERY (Read Operation)
+
+### Synchronous Operations (Critical Path)
+- ✅ [Operation name]
+  - **Why**: [User needs immediate response / Critical validation]
+  - **How**: [Domain Service / HTTP Client]
+  - **Alternative rejected**: [Why async wouldn't work]
+
+### Asynchronous Operations (Side Effects)
+- ✅ [Operation name]
+  - **Why**: [Non-critical, can fail and retry]
+  - **How**: [Event Handler listening to X event]
+
+### Event Criticality
+- [ ] Use Outbox Pattern
+  - **Why**: [Events are CRITICAL for X reason] ← **NO APLICA - no hay eventos**
+  - **Cost of loss**: [What happens if event is lost]
+- [x] Use Simple Publish / No Events
+  - **Why**: [No hay eventos críticos en este proyecto] ← **Este proyecto**
+
+### Read Model Decision
+- [x] Use Repository Pattern
+  - **Why**: [Simple queries] ← **SIEMPRE para este proyecto**
+- [ ] Use Read Model
+  - **Why**: [Complex queries with filters/joins] ← **NO APLICA**
+```
+
+---
+
+## When to Introduce Patterns
+
+> **⚠️ Para este proyecto:** Estos patrones NO se usan. Se mantiene la documentación como referencia, pero no aplican.
+
+### Outbox Pattern
+
+**⚠️ NO APLICA para este proyecto** - No hay eventos críticos.
+
+**Use when (referencia general):**
+
+- ❌ Events being lost in production
+- ❌ Critical business events (payments, inventory, billing)
+- ❌ Need for auditing all events
+
+**Don't use when:**
+
+- ✅ Events are non-critical (emails, notifications) ← **Este proyecto**
+- ✅ Simple application with low traffic ← **Este proyecto**
+- ✅ You can tolerate occasional event loss ← **Este proyecto**
+
+### Read Models (CQRS)
+
+**⚠️ NO APLICA para este proyecto** - Todas las queries son simples.
+
+**Use when (referencia general):**
+
+- ❌ Queries taking >1 second
+- ❌ N+1 query problems in listings
+- ❌ Complex joins in frequent queries
+- ❌ Need for full-text search
+
+**Don't use when:**
+
+- ✅ Simple queries (GetById) ← **Este proyecto**
+- ✅ Low traffic application ← **Este proyecto**
+- ✅ Strong consistency required for all reads ← **Este proyecto**
+
+### Asynchronous Communication
+
+**Always use ASYNC for:**
+
+- ✅ Non-critical side effects (emails, notifications)
+- ✅ Communication between bounded contexts
+- ✅ Operations that can fail and retry
+- ✅ Long-running processes
+- ✅ Read model updates
+
+**Always use SYNC for:**
+
+- ✅ Critical validations
+- ✅ Operations requiring immediate response
+- ✅ Within same bounded context
+- ✅ Atomic transactions
+
+---
+
+## Critical Rules
+
+❌ **NEVER:**
+
+- Skip the Decision Framework
+- Make everything async "because it's trendy"
+- Use Outbox Pattern for non-critical events
+- Skip documenting architectural decisions
+
+✅ **ALWAYS:**
+
+- Answer all 5 questions before coding
+- Document decisions in feature documentation
+- Justify sync vs async choices
+- Consider event criticality

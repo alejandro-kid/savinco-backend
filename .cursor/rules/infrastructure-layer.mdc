@@ -1,0 +1,254 @@
+---
+description: Rules for Infrastructure Layer - JPA Repositories, Entities (PostgreSQL)
+globs:
+  - "**/infrastructure/**/*.java"
+  - "**/persistence/**/*.java"
+alwaysApply: false
+---
+
+# Infrastructure Layer Rules - Layered Architecture
+
+## ⚠️ Nota para este Proyecto
+
+Este proyecto usa **Layered Architecture simple**:
+
+- ✅ JPA Repository implementations (PostgreSQL)
+- ✅ JPA Entities
+- ❌ NO Outbox Pattern
+- ❌ NO Event Bus
+- ❌ NO Read Models
+- ❌ NO Unit of Work (Spring @Transactional es suficiente)
+- ❌ NO MongoDB (solo PostgreSQL)
+
+---
+
+## Location
+
+`src/main/java/<package>/<context>/infrastructure/persistence/`
+
+---
+
+## General Principles
+
+**ALWAYS:**
+
+- Use Spring Data JPA repositories
+- Use technology prefix: `JpaFinancialDataRepository` (si implementas interface manualmente)
+- Use `@Repository` annotation
+- Handle technical concerns (JPA entities, transactions)
+- Convert Exceptions → Domain Exceptions
+- Use `@Transactional` for write operations
+- Create JPA Entity classes (pueden estar en domain o infrastructure)
+
+**NEVER:**
+
+- Expose infrastructure details to application layer
+- Skip error handling
+- Hardcode connection strings (use application.yml)
+
+---
+
+## Repository Implementations
+
+### Spring Data JPA (Recomendado - Más Simple)
+
+**Para este proyecto, usar Spring Data JPA directamente es la opción más simple:**
+
+```java
+@Repository
+public interface FinancialDataRepository extends JpaRepository<FinancialDataEntity, Long> {
+    Optional<FinancialDataEntity> findByCountryCode(String countryCode);
+    boolean existsByCountryCode(String countryCode);
+    void deleteByCountryCode(String countryCode);
+}
+```
+
+**JPA Entity (puede estar en domain o infrastructure):**
+
+```java
+@Entity
+@Table(name = "financial_data")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class FinancialDataEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = "country_code", unique = true, nullable = false, length = 3)
+    private String countryCode;
+    
+    @Column(name = "currency_code", nullable = false, length = 3)
+    private String currencyCode;
+    
+    @Column(name = "capital_saved", nullable = false, precision = 19, scale = 2)
+    private BigDecimal capitalSaved;
+    
+    @Column(name = "capital_loaned", nullable = false, precision = 19, scale = 2)
+    private BigDecimal capitalLoaned;
+    
+    @Column(name = "profits_generated", nullable = false, precision = 19, scale = 2)
+    private BigDecimal profitsGenerated;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}
+```
+
+### Custom Repository Implementation (Si necesitas lógica compleja)
+
+**Solo si necesitas lógica que Spring Data JPA no puede hacer automáticamente:**
+
+```java
+@Repository
+@RequiredArgsConstructor
+public class JpaFinancialDataRepository implements FinancialDataRepository {
+    private final FinancialDataJpaRepository jpaRepository;
+
+    @Override
+    @Transactional
+    public void save(FinancialDataEntity entity) {
+        jpaRepository.save(entity);
+    }
+
+    @Override
+    public Optional<FinancialDataEntity> findById(Long id) {
+        return jpaRepository.findById(id);
+    }
+
+    @Override
+    public Optional<FinancialDataEntity> findByCountryCode(String countryCode) {
+        return jpaRepository.findByCountryCode(countryCode);
+    }
+
+    @Override
+    public List<FinancialDataEntity> findAll() {
+        return jpaRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public void deleteByCountryCode(String countryCode) {
+        jpaRepository.deleteByCountryCode(countryCode);
+    }
+
+    @Override
+    public boolean existsByCountryCode(String countryCode) {
+        return jpaRepository.existsByCountryCode(countryCode);
+    }
+}
+
+// Spring Data JPA Interface
+public interface FinancialDataJpaRepository extends JpaRepository<FinancialDataEntity, Long> {
+    Optional<FinancialDataEntity> findByCountryCode(String countryCode);
+    boolean existsByCountryCode(String countryCode);
+    void deleteByCountryCode(String countryCode);
+}
+```
+
+---
+
+## Exception Handling
+
+**ALWAYS:**
+
+- Convert JPA exceptions to domain exceptions
+- Handle `DataIntegrityViolationException` for unique constraints
+- Handle `EntityNotFoundException` for not found cases
+
+**Example:**
+
+```java
+@Repository
+@RequiredArgsConstructor
+public class JpaFinancialDataRepository implements FinancialDataRepository {
+    private final FinancialDataJpaRepository jpaRepository;
+
+    @Override
+    @Transactional
+    public void save(FinancialDataEntity entity) {
+        try {
+            jpaRepository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            if (e.getMessage().contains("uk_country")) {
+                throw new CountryAlreadyExistsException(entity.getCountryCode());
+            }
+            throw e;
+        }
+    }
+}
+```
+
+---
+
+## Database Configuration
+
+**application.yml:**
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/savinco_financial
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update  # o validate en producción
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+```
+
+---
+
+## Folder Structure
+
+```bash
+src/main/java/com/savinco/financial/infrastructure/
+└── persistence/
+    ├── FinancialDataRepository.java (Spring Data JPA interface)
+    └── FinancialDataEntity.java (JPA Entity - puede estar en domain)
+```
+
+---
+
+## Critical Rules
+
+❌ **NEVER (para este proyecto):**
+
+- Use Outbox Pattern (no hay eventos críticos)
+- Create Event Bus (no se usa)
+- Create Read Models (queries simples)
+- Use Unit of Work (Spring @Transactional es suficiente)
+- Use MongoDB (solo PostgreSQL)
+- Skip error handling
+- Expose JPA-specific types to application layer
+
+✅ **ALWAYS (para este proyecto):**
+
+- Use Spring Data JPA repositories
+- Use JPA entities with proper annotations
+- Use @Repository annotation
+- Handle exceptions → Domain exceptions
+- Use @Transactional for write operations
+- Use BigDecimal for monetary values (precision)
+- Use proper column mappings (@Column)

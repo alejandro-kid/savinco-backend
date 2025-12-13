@@ -1,0 +1,221 @@
+---
+description: Rules for Domain Layer - Entities (JPA), Value Objects (Optional), Enums
+globs:
+  - "**/domain/**/*.java"
+  - "**/entity/**/*.java"
+alwaysApply: false
+---
+
+# Domain Layer Rules - Layered Architecture
+
+## ⚠️ Nota para este Proyecto
+
+Este proyecto usa **Layered Architecture simple**, no Hexagonal Architecture completa.
+
+**Simplificaciones aplicadas:**
+- ✅ Entidades JPA estándar (NO AggregateRoot)
+- ✅ Value Objects solo donde tenga sentido (Country enum, Money si aplica)
+- ❌ NO Domain Events complejos (no hay eventos críticos)
+- ✅ Constructores normales (NO factory methods obligatorios)
+
+---
+
+## Entities (JPA) - Para Layered Architecture
+
+**ALWAYS:**
+
+- Use JPA `@Entity` annotation
+- Use Lombok `@Getter`, `@Setter`, `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`
+- Use `@Id` with `@GeneratedValue` for primary keys
+- Use Value Objects solo donde tenga sentido (Country enum, Money para precisión)
+- Use primitives (String, BigDecimal) para propiedades simples
+- Use `@Column` annotations for mapping
+- Implement `equals()` and `hashCode()` (Lombok `@Data` handles this)
+
+**Template:**
+
+```java
+@Entity
+@Table(name = "financial_data")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class FinancialDataEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = "country_code", unique = true, nullable = false, length = 3)
+    private String countryCode; // ECU, ESP, PER, NPL
+    
+    @Column(name = "currency_code", nullable = false, length = 3)
+    private String currencyCode; // USD, EUR, PEN, NPR
+    
+    @Column(name = "capital_saved", nullable = false, precision = 19, scale = 2)
+    private BigDecimal capitalSaved;
+    
+    @Column(name = "capital_loaned", nullable = false, precision = 19, scale = 2)
+    private BigDecimal capitalLoaned;
+    
+    @Column(name = "profits_generated", nullable = false, precision = 19, scale = 2)
+    private BigDecimal profitsGenerated;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+}
+```
+
+---
+
+## Value Objects (Opcional)
+
+**Para este proyecto:** Value Objects son opcionales. Úsalos solo donde tenga sentido:
+
+- ✅ Country enum (para validación de países)
+- ✅ Money/BigDecimal para precisión monetaria (ya es BigDecimal, no necesita wrapper)
+- ❌ NO crear Value Objects para todo (String, Integer son suficientes)
+
+**Ejemplo de enum (útil):**
+
+```java
+public enum Country {
+    ECUADOR("ECU", "Ecuador", "USD"),
+    SPAIN("ESP", "España", "EUR"),
+    PERU("PER", "Perú", "PEN"),
+    NEPAL("NPL", "Nepal", "NPR");
+    
+    private final String code;
+    private final String name;
+    private final String currency;
+    
+    Country(String code, String name, String currency) {
+        this.code = code;
+        this.name = name;
+        this.currency = currency;
+    }
+    
+    public String getCode() { return code; }
+    public String getName() { return name; }
+    public String getCurrency() { return currency; }
+    
+    public static Country fromCode(String code) {
+        return Arrays.stream(values())
+            .filter(c -> c.code.equals(code))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + code));
+    }
+}
+```
+
+**Si necesitas un Value Object (ejemplo Money para validaciones):**
+
+```java
+@Value
+public class Money {
+    BigDecimal value;
+
+    private Money(BigDecimal value) {
+        this.ensureIsValidAmount(value);
+        this.value = value;
+    }
+
+    private void ensureIsValidAmount(BigDecimal value) {
+        if (value == null) {
+            throw new InvalidMoneyException("Amount cannot be null");
+        }
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new InvalidMoneyException("Amount cannot be negative");
+        }
+    }
+
+    public static Money create(BigDecimal value) {
+        return new Money(value);
+    }
+    
+    public BigDecimal getValue() {
+        return value;
+    }
+}
+```
+
+---
+
+## Domain Exceptions
+
+**ALWAYS:**
+
+- Extend from `RuntimeException` (unchecked exceptions in Java)
+- Descriptive class names ending in `Exception`
+- Clear, business-focused error messages
+- Located in domain layer or application layer
+- Use constructor for simple messages
+
+**Template:**
+
+```java
+public class CountryAlreadyExistsException extends RuntimeException {
+    public CountryAlreadyExistsException(String countryCode) {
+        super(String.format("Country %s already has financial data registered", countryCode));
+    }
+}
+
+public class CountryNotFoundException extends RuntimeException {
+    public CountryNotFoundException(String countryCode) {
+        super(String.format("Financial data for country %s not found", countryCode));
+    }
+}
+```
+
+---
+
+## Critical Rules
+
+❌ **NEVER (para este proyecto):**
+
+- Use AggregateRoot (no aplica para Layered Architecture)
+- Create complex Domain Events (no hay eventos críticos)
+- Use factory methods obligatorios (constructores normales son suficientes)
+- Create Value Objects para todo (String, Integer, BigDecimal son suficientes)
+- Skip JPA annotations (necesarias para persistencia)
+
+✅ **ALWAYS (para este proyecto):**
+
+- Use JPA entities estándar con `@Entity`
+- Use Lombok para reducir boilerplate
+- Use BigDecimal para valores monetarios (precisión)
+- Use enums para validación (Country)
+- Use constructores normales
+- Validate en constructores o en Services
+- Throw descriptive domain errors
+
+---
+
+## Repository Interfaces (Opcional)
+
+**Para este proyecto:** Puedes usar Spring Data JPA directamente o definir interfaces en domain.
+
+**Opción 1: Spring Data JPA directo (más simple):**
+
+```java
+@Repository
+public interface FinancialDataRepository extends JpaRepository<FinancialDataEntity, Long> {
+    Optional<FinancialDataEntity> findByCountryCode(String countryCode);
+    boolean existsByCountryCode(String countryCode);
+}
+```
+
+**Opción 2: Interface en domain (más desacoplado):**
+
+```java
+public interface FinancialDataRepository {
+    void save(FinancialDataEntity entity);
+    Optional<FinancialDataEntity> findById(Long id);
+    Optional<FinancialDataEntity> findByCountryCode(String countryCode);
+    List<FinancialDataEntity> findAll();
+    void deleteByCountryCode(String countryCode);
+    boolean existsByCountryCode(String countryCode);
+}
+```

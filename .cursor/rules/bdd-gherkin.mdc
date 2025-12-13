@@ -1,0 +1,454 @@
+---
+description: BDD and Gherkin rules - NEVER write code without .feature file first
+globs:
+  - "**/*.feature"
+  - "**/stepdefinitions/**/*.java"
+  - "**/steps/**/*.java"
+alwaysApply: false
+---
+
+# BDD and Gherkin Rules
+
+## Golden Rule
+
+> ❌ **NEVER** write code without first having a `.feature` file with validated Gherkin scenarios
+
+## The 3 Pillars of BDD
+
+1. **Discovery**: "What it could do" - Example Mapping workshop
+2. **Formulation**: "What it should do" - Write .feature file
+3. **Automation**: "What it actually does" - Implement step definitions
+
+## Mandatory BDD Flow (BEFORE Coding)
+
+```bash
+1. Discovery Workshop (Example Mapping)
+   ├─ 🟡 Yellow: User Story
+   ├─ 🔵 Blue: Rules/Acceptance Criteria
+   ├─ 🟢 Green: Concrete Examples
+   └─ 🔴 Red: Questions/Doubts
+   ↓
+2. Apply Decision Framework
+   ├─ Identify sync operations (immediate response)
+   ├─ Identify async operations (side effects)
+   └─ Identify critical events (Outbox Pattern)
+   ↓
+3. Write .feature file
+   ├─ Happy path (sync validation)
+   ├─ Most common error (sync feedback)
+   ├─ Async side effects (eventual)
+   └─ Edge cases
+   ↓
+4. Validate with Product Owner
+   ↓
+5. Create step definitions (RED)
+   ↓
+6. Implement code (GREEN)
+   ↓
+7. Refactor
+```
+
+## Gherkin Structure (MANDATORY)
+
+```gherkin
+Feature: [Clear name of the feature]
+  As a [type of user]
+  I want to [action they want to do]
+  So that [benefit they get]
+
+  Background: [Optional - shared context]
+    Given [shared setup for all scenarios]
+
+  # SYNCHRONOUS: Immediate response
+  Scenario: [Success case with immediate feedback]
+    Given [specific initial state with concrete data]
+    When [specific user action]
+    Then [expected result] immediately
+    And [additional synchronous validations]
+
+  # SYNCHRONOUS: Immediate error
+  Scenario: [Error case with immediate feedback]
+    Given [state that causes error]
+    When [action that triggers error]
+    Then [specific error message] immediately
+    And [no side effects should occur]
+
+  # ASYNCHRONOUS: Eventual consistency
+  Scenario: [Side effect verification]
+    Given [initial successful state]
+    Then [expected outcome] eventually
+    And [verification] within [N] seconds
+
+  # EDGE CASE
+  Scenario: [Boundary condition]
+    Given [boundary state]
+    When [action at the limit]
+    Then [expected behavior]
+```
+
+## Official Gherkin Keywords
+
+**Only use these keywords:**
+
+- `Feature` - First line, high-level description
+- `Background` - Shared Given steps (optional)
+- `Scenario` - Specific test case
+- `Scenario Outline` - Multiple data sets (advanced)
+- `Given` - Initial context (past tense)
+- `When` - Event/action (present tense)
+- `Then` - Expected outcome (future tense)
+- `And` - Additional conditions
+- `But` - Restrictions/exceptions
+
+## Step Patterns
+
+### Given Steps (Initial State)
+
+**Purpose:** Set up system in known state
+**Tense:** Past tense
+**Rules:** Avoid user interaction, be specific
+
+```gherkin
+❌ Given the user is logged in
+✅ Given a user with email "test@email.com" exists and is authenticated
+
+❌ Given there are products
+✅ Given the product "LAPTOP-X1" has 5 units in stock at $999.99 each
+
+✅ Given I am authenticated as "customer@test.com"
+✅ Given the database contains 10 active orders
+✅ Given the inventory has sufficient stock for product "PROD-123"
+```
+
+### When Steps (Event/Action)
+
+**Purpose:** Describe user interaction or event
+**Tense:** Present tense
+**Rules:** Hide technical details, be specific
+
+```gherkin
+❌ When I send a POST request to /api/login
+✅ When I enter my credentials and click "Sign In"
+
+❌ When the order is created
+✅ When I create an order with 2 units of "LAPTOP-X1"
+
+✅ When I try to create an order with 10 units of "OUT-OF-STOCK"
+✅ When I click the "Confirm Order" button
+```
+
+### Then Steps (Expected Result)
+
+**Purpose:** Verify observable outcome
+**Tense:** Future tense
+**Rules:**
+
+- Never check database directly
+- Use "immediately" for SYNC operations
+- Use "eventually" for ASYNC operations
+- Specify timeouts for async
+
+```gherkin
+❌ Then the user record should be updated in the database
+✅ Then I should see the "Welcome back, John" message
+
+# SYNC verification
+✅ Then I should see "Order created successfully" immediately
+✅ Then I should see error "Insufficient stock" immediately
+✅ Then my order status should be "PENDING"
+
+# ASYNC verification
+✅ Then I should receive an order confirmation email eventually
+✅ Then the email should be received within 10 seconds
+✅ Then the inventory projection should show 7 units for "PROD-123" eventually
+✅ Then the warehouse system should receive a picking task within 5 seconds
+```
+
+## Mandatory Scenario Coverage
+
+**Each feature MUST have minimum 3 scenarios:**
+
+1. ✅ **Happy path** - Success case with SYNC validation
+2. ✅ **Most common error** - Error case with SYNC feedback
+3. ✅ **Async behavior** - Side effect verification (if applicable)
+4. ✅ **Edge case** - Boundary condition
+
+## Complete Example Template
+
+```gherkin
+Feature: Create Order
+  As a customer
+  I want to create an order for products
+  So that I can purchase items from the store
+
+  Background:
+    Given I am authenticated as "customer@test.com"
+
+  # SYNC: Happy path with immediate validation
+  Scenario: Successfully create order with available stock
+    Given the product "LAPTOP-X1" has 5 units in stock at $999.99 each
+    When I create an order with 2 units of "LAPTOP-X1"
+    Then I should see "Order created successfully" immediately
+    And my order should have status "PENDING"
+    And the order total should be $1999.98
+
+  # SYNC: Immediate error feedback
+  Scenario: Cannot create order with insufficient stock
+    Given the product "LAPTOP-X1" has 1 unit in stock
+    When I try to create an order with 5 units of "LAPTOP-X1"
+    Then I should see error "Insufficient stock for product LAPTOP-X1" immediately
+    And no order should be created
+    And no events should be published
+
+  # ASYNC: Side effect verification
+  Scenario: Order confirmation email sent after creation
+    Given I have successfully created order "ORD-123" with total $1999.98
+    Then I should receive an order confirmation email eventually
+    And the email should contain order number "ORD-123"
+    And the email should contain total "$1999.98"
+    And the email should be received within 10 seconds
+
+  # ASYNC: Read model eventual consistency
+  Scenario: Inventory projection updated after order creation
+    Given the product "LAPTOP-X1" has 5 units in stock
+    When I create an order with 2 units of "LAPTOP-X1"
+    Then the order should be created immediately
+    And the inventory projection should show 3 units for "LAPTOP-X1" eventually
+    And the update should occur within 5 seconds
+
+  # EDGE CASE
+  Scenario: Create order with exact available stock
+    Given the product "LAPTOP-X1" has exactly 3 units in stock
+    When I create an order with 3 units of "LAPTOP-X1"
+    Then I should see "Order created successfully" immediately
+    And the inventory projection should show 0 units for "LAPTOP-X1" eventually
+```
+
+## Step Definition Templates
+
+### Given Step Implementation
+
+```java
+import io.cucumber.java.en.Given;
+import org.springframework.beans.factory.annotation.Autowired;
+
+// Setup authentication
+@Given("I am authenticated as {string}")
+public void iAmAuthenticatedAs(String email) {
+    User user = userRepository.findByEmail(email).orElse(null);
+    if (user == null) {
+        userRepository.save(UserMother.create(UserMotherParams.builder()
+            .email(email)
+            .build()));
+    }
+    this.authenticatedUser = email;
+    this.authToken = authService.generateToken(email);
+}
+
+// Setup product stock
+@Given("the product {string} has {int} units in stock at ${double} each")
+public void theProductHasUnitsInStock(String productId, int stock, double price) {
+    inventoryRepository.save(
+        ProductMother.create(ProductMotherParams.builder()
+            .id(productId)
+            .stock(stock)
+            .price(price)
+            .build())
+    );
+}
+
+// Setup order
+@Given("I have successfully created order {string} with total ${double}")
+public void iHaveSuccessfullyCreatedOrder(String orderId, double total) {
+    CreateOrderRequest request = CreateOrderRequest.builder()
+        .items(List.of(new OrderItemRequest("PROD-1", 1)))
+        .build();
+    ResponseEntity<OrderResponse> response = restTemplate.postForEntity(
+        "/orders", request, OrderResponse.class);
+    this.lastOrderId = orderId;
+    this.lastOrderTotal = total;
+}
+```
+
+### When Step Implementation
+
+```java
+import io.cucumber.java.en.When;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+
+// Action: Create order
+@When("I create an order with {int} units of {string}")
+public void iCreateAnOrderWithUnitsOf(int quantity, String productId) {
+    try {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(this.authToken);
+        CreateOrderRequest request = CreateOrderRequest.builder()
+            .items(List.of(new OrderItemRequest(productId, quantity)))
+            .build();
+        HttpEntity<CreateOrderRequest> entity = new HttpEntity<>(request, headers);
+        
+        this.lastResponse = restTemplate.postForEntity(
+            "/orders", entity, OrderResponse.class);
+        this.lastOrderId = this.lastResponse.getBody().getId();
+    } catch (Exception e) {
+        this.lastError = e;
+    }
+}
+
+// Action: Try with error expected
+@When("I try to create an order with {int} units of {string}")
+public void iTryToCreateAnOrderWithUnitsOf(int quantity, String productId) {
+    try {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(this.authToken);
+        CreateOrderRequest request = CreateOrderRequest.builder()
+            .items(List.of(new OrderItemRequest(productId, quantity)))
+            .build();
+        HttpEntity<CreateOrderRequest> entity = new HttpEntity<>(request, headers);
+        
+        this.lastResponse = restTemplate.postForEntity(
+            "/orders", entity, OrderResponse.class);
+    } catch (Exception e) {
+        this.lastError = e;
+    }
+}
+```
+
+### Then Step Implementation (SYNC)
+
+```typescript
+import { Then } from '@cucumber/cucumber';
+import { expect } from 'chai';
+
+// Immediate success verification
+Then('I should see {string} immediately',
+  function(this: CustomWorld, expectedMessage: string) {
+    expect(this.lastResponse.data.message).to.equal(expectedMessage);
+  }
+);
+
+// Immediate error verification
+Then('I should see error {string} immediately',
+  function(this: CustomWorld, expectedError: string) {
+    expect(this.lastError).to.exist;
+    expect(this.lastError.response.data.error).to.include(expectedError);
+  }
+);
+
+// State verification
+Then('my order status should be {string}',
+  async function(this: CustomWorld, expectedStatus: string) {
+    const order = await this.orderRepository.findById(this.lastOrderId);
+    expect(order.status).to.equal(expectedStatus);
+  }
+);
+```
+
+### Then Step Implementation (ASYNC with Polling)
+
+```typescript
+// Helper for eventual consistency
+async function waitFor(
+  condition: () => Promise<boolean>,
+  timeout: number = 10000,
+  interval: number = 200
+): Promise<boolean> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    if (await condition()) {
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, interval));
+  }
+  
+  return false;
+}
+
+// Eventual email verification
+Then('I should receive an order confirmation email eventually',
+  async function(this: CustomWorld) {
+    const received = await waitFor(async () => {
+      const emails = await this.emailService.getSentEmails(this.authenticatedUser);
+      return emails.some(e => 
+        e.subject.includes('Order Confirmation') &&
+        e.body.includes(this.lastOrderId)
+      );
+    }, 10000);
+    
+    expect(received).to.be.true;
+  }
+);
+
+// Eventual read model verification
+Then('the inventory projection should show {int} units for {string} eventually',
+  async function(this: CustomWorld, expectedStock: number, productId: string) {
+    const updated = await waitFor(async () => {
+      const projection = await this.inventoryReadModel.findByProductId(productId);
+      return projection && projection.stock === expectedStock;
+    }, 5000);
+    
+    expect(updated).to.be.true;
+  }
+);
+```
+
+## File Structure
+
+```bash
+src/test/resources/features/
+├── create-order.feature
+├── search-orders.feature
+└── cancel-order.feature
+
+src/test/java/com/example/bdd/stepdefinitions/
+├── CreateOrderSteps.java
+├── SearchOrdersSteps.java
+└── CancelOrderSteps.java
+
+src/test/java/com/example/bdd/support/
+├── TestContext.java      # Test context with shared state
+└── CucumberHooks.java    # Before/After hooks
+```
+
+## Critical Rules
+
+❌ **ABSOLUTELY FORBIDDEN:**
+
+- Writing code without .feature file
+- Creating tests after coding
+- Generic scenarios without concrete data
+- More than 10 steps in a scenario
+- Skipping async behavior verification
+- Not documenting sync vs async decisions
+- Using technical language in scenarios
+- Checking database directly in Then steps
+
+✅ **ALWAYS:**
+
+- Complete Discovery Workshop first
+- Apply Decision Framework before writing scenarios
+- Use concrete data (emails, amounts, IDs)
+- Include "immediately" for sync operations
+- Include "eventually" for async operations
+- Specify timeouts for async verifications
+- One scenario = one functionality
+- Validate scenarios with Product Owner
+- Create step definitions that fail first (RED)
+
+## Checklist Before Committing
+
+- [ ] .feature file exists?
+- [ ] All scenarios validated with Product Owner?
+- [ ] Architectural decisions documented?
+- [ ] Happy path scenario exists?
+- [ ] Error case scenario exists?
+- [ ] Async behavior scenario exists (if applicable)?
+- [ ] Edge case scenario exists?
+- [ ] All scenarios use concrete data?
+- [ ] Step definitions implemented?
+- [ ] All Gherkin tests pass?
+- [ ] Sync operations use "immediately"?
+- [ ] Async operations use "eventually" with timeout?
