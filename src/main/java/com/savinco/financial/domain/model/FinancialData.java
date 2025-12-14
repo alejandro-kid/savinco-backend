@@ -18,22 +18,25 @@ public class FinancialData {
 
     public FinancialData(Long id, Country country, Currency currency, 
                          BigDecimal capitalSaved, BigDecimal capitalLoaned, 
-                         BigDecimal profitsGenerated, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                         BigDecimal profitsGenerated, Timestamps timestamps) {
         this.id = id;
         this.country = country;
         this.currency = currency;
         this.capitalSaved = capitalSaved;
         this.capitalLoaned = capitalLoaned;
         this.profitsGenerated = profitsGenerated;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        this.createdAt = timestamps.createdAt();
+        this.updatedAt = timestamps.updatedAt();
+    }
+
+    public record Timestamps(LocalDateTime createdAt, LocalDateTime updatedAt) {
     }
 
     public FinancialData(Country country, Currency currency, 
                          BigDecimal capitalSaved, BigDecimal capitalLoaned, 
                          BigDecimal profitsGenerated) {
         this(null, country, currency, capitalSaved, capitalLoaned, profitsGenerated, 
-             LocalDateTime.now(), LocalDateTime.now());
+             new Timestamps(LocalDateTime.now(), LocalDateTime.now()));
     }
 
     public void validate() {
