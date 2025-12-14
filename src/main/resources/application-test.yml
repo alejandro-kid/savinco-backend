@@ -15,6 +15,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: false
+  
+  flyway:
+    enabled: false  # Deshabilitar Flyway en tests (H2 usa ddl-auto)
 
 server:
   port: 8080
