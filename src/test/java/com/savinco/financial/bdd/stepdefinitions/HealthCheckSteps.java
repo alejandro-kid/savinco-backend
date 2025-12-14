@@ -1,9 +1,10 @@
 package com.savinco.financial.bdd.stepdefinitions;
 
-import com.savinco.financial.bdd.support.TestContext;
-import io.cucumber.java.en.Given;
-import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -11,9 +12,12 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Map;
+import com.savinco.financial.bdd.support.ApiUrlBuilder;
+import com.savinco.financial.bdd.support.TestContext;
 
-import static org.junit.jupiter.api.Assertions.*;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 
 public class HealthCheckSteps {
 
@@ -22,6 +26,9 @@ public class HealthCheckSteps {
 
     @Autowired
     private TestContext testContext;
+
+    @Autowired
+    private ApiUrlBuilder urlBuilder;
 
     @LocalServerPort
     private int port;
@@ -34,7 +41,7 @@ public class HealthCheckSteps {
 
     @When("I request the health check endpoint")
     public void iRequestTheHealthCheckEndpoint() {
-        String url = "http://localhost:" + port + "/api/v1/health";
+        String url = urlBuilder.buildHealthUrl(port);
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
             url,
             org.springframework.http.HttpMethod.GET,
