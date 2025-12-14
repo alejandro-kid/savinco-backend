@@ -64,10 +64,11 @@ public class HealthCheckSteps {
     @Then("the response should contain status {string}")
     public void theResponseShouldContainStatus(String expectedStatus) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
         assertEquals(
             expectedStatus,
-            testContext.getLastResponse().getBody().get("status"),
+            body.get("status"),
             "Expected status to be " + expectedStatus
         );
     }
@@ -75,9 +76,10 @@ public class HealthCheckSteps {
     @Then("the response should contain timestamp")
     public void theResponseShouldContainTimestamp() {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
         assertNotNull(
-            testContext.getLastResponse().getBody().get("timestamp"),
+            body.get("timestamp"),
             "Response should contain timestamp"
         );
     }

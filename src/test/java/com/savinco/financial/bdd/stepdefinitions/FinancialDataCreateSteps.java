@@ -90,10 +90,11 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain country code {string}")
     public void theResponseShouldContainCountryCode(String expectedCountryCode) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
         assertEquals(
             expectedCountryCode,
-            testContext.getLastResponse().getBody().get("countryCode"),
+            body.get("countryCode"),
             "Expected country code to be " + expectedCountryCode
         );
     }
@@ -101,10 +102,11 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain country name {string}")
     public void theResponseShouldContainCountryName(String expectedCountryName) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
         assertEquals(
             expectedCountryName,
-            testContext.getLastResponse().getBody().get("countryName"),
+            body.get("countryName"),
             "Expected country name to be " + expectedCountryName
         );
     }
@@ -112,10 +114,11 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain original currency {string}")
     public void theResponseShouldContainOriginalCurrency(String expectedCurrency) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
         assertEquals(
             expectedCurrency,
-            testContext.getLastResponse().getBody().get("originalCurrency"),
+            body.get("originalCurrency"),
             "Expected original currency to be " + expectedCurrency
         );
     }
@@ -123,8 +126,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain capital saved in USD {string}")
     public void theResponseShouldContainCapitalSavedInUSD(String expectedValue) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object capitalSaved = testContext.getLastResponse().getBody().get("capitalSaved");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object capitalSaved = body.get("capitalSaved");
         assertNotNull(capitalSaved, "capitalSaved should not be null");
         
         BigDecimal expected = new BigDecimal(expectedValue);
@@ -139,8 +143,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain capital loaned in USD {string}")
     public void theResponseShouldContainCapitalLoanedInUSD(String expectedValue) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object capitalLoaned = testContext.getLastResponse().getBody().get("capitalLoaned");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object capitalLoaned = body.get("capitalLoaned");
         assertNotNull(capitalLoaned, "capitalLoaned should not be null");
         
         BigDecimal expected = new BigDecimal(expectedValue);
@@ -155,8 +160,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain profits generated in USD {string}")
     public void theResponseShouldContainProfitsGeneratedInUSD(String expectedValue) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object profitsGenerated = testContext.getLastResponse().getBody().get("profitsGenerated");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object profitsGenerated = body.get("profitsGenerated");
         assertNotNull(profitsGenerated, "profitsGenerated should not be null");
         
         BigDecimal expected = new BigDecimal(expectedValue);
@@ -171,8 +177,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain total in USD {string}")
     public void theResponseShouldContainTotalInUSD(String expectedValue) {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object totalInUSD = testContext.getLastResponse().getBody().get("totalInUSD");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object totalInUSD = body.get("totalInUSD");
         assertNotNull(totalInUSD, "totalInUSD should not be null");
         
         BigDecimal expected = new BigDecimal(expectedValue);
@@ -187,8 +194,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain error message about duplicate country")
     public void theResponseShouldContainErrorMessageAboutDuplicateCountry() {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object message = testContext.getLastResponse().getBody().get("message");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
         assertNotNull(message, "Error message should not be null");
         String messageStr = message.toString().toLowerCase();
         assertTrue(
@@ -200,8 +208,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain error message about invalid country code")
     public void theResponseShouldContainErrorMessageAboutInvalidCountryCode() {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object message = testContext.getLastResponse().getBody().get("message");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
         assertNotNull(message, "Error message should not be null");
         String messageStr = message.toString().toLowerCase();
         assertTrue(
@@ -213,8 +222,9 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain error message about currency mismatch")
     public void theResponseShouldContainErrorMessageAboutCurrencyMismatch() {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object message = testContext.getLastResponse().getBody().get("message");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
         assertNotNull(message, "Error message should not be null");
         String messageStr = message.toString().toLowerCase();
         assertTrue(
@@ -226,13 +236,42 @@ public class FinancialDataCreateSteps {
     @Then("the response should contain error message about negative values")
     public void theResponseShouldContainErrorMessageAboutNegativeValues() {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        assertNotNull(testContext.getLastResponse().getBody(), "Response body should not be null");
-        Object message = testContext.getLastResponse().getBody().get("message");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
         assertNotNull(message, "Error message should not be null");
         String messageStr = message.toString().toLowerCase();
         assertTrue(
             messageStr.contains("negative") || messageStr.contains("positive") || messageStr.contains("greater") || messageStr.contains("minimum"),
             "Error message should mention negative values: " + message
+        );
+    }
+
+    @Then("the response should contain error message about country not found")
+    public void theResponseShouldContainErrorMessageAboutCountryNotFound() {
+        assertNotNull(testContext.getLastResponse(), "Response should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
+        assertNotNull(message, "Error message should not be null");
+        String messageStr = message.toString().toLowerCase();
+        assertTrue(
+            messageStr.contains("not found") || messageStr.contains("does not exist") || messageStr.contains("country"),
+            "Error message should mention country not found: " + message
+        );
+    }
+
+    @Then("the response should contain error message about invalid currency code")
+    public void theResponseShouldContainErrorMessageAboutInvalidCurrencyCode() {
+        assertNotNull(testContext.getLastResponse(), "Response should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
+        assertNotNull(message, "Error message should not be null");
+        String messageStr = message.toString().toLowerCase();
+        assertTrue(
+            messageStr.contains("currency") || messageStr.contains("invalid"),
+            "Error message should mention invalid currency code: " + message
         );
     }
 }

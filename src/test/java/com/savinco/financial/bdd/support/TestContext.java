@@ -11,5 +11,13 @@ import java.util.Map;
 @Getter
 @Setter
 public class TestContext {
-    private ResponseEntity<Map<String, Object>> lastResponse;
+    private ResponseEntity<?> lastResponse;
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getLastResponseBodyAsMap() {
+        if (lastResponse == null || lastResponse.getBody() == null) {
+            return null;
+        }
+        return (Map<String, Object>) lastResponse.getBody();
+    }
 }

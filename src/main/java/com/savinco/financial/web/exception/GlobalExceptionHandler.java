@@ -1,9 +1,9 @@
 package com.savinco.financial.web.exception;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -11,9 +11,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -26,8 +27,8 @@ public class GlobalExceptionHandler {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
-            if (errorMessage != null && (errorMessage.toLowerCase().contains("negative") || 
-                errorMessage.toLowerCase().contains("non-negative"))) {
+            if (errorMessage != null && (errorMessage.toLowerCase().contains("negative")
+                || errorMessage.toLowerCase().contains("non-negative"))) {
                 messageBuilder.append(errorMessage).append("; ");
             }
         });
@@ -60,13 +61,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
+        // Check if it's a "not found" error (404) or a conflict error (409)
+        String message = ex.getMessage().toLowerCase();
+        HttpStatus status = (message.contains("not found") || message.contains("does not exist")) 
+            ? HttpStatus.NOT_FOUND 
+            : HttpStatus.CONFLICT;
+        
         ErrorResponse errorResponse = ErrorResponse.builder()
-            .status(HttpStatus.CONFLICT.value())
+            .status(status.value())
             .message(ex.getMessage())
             .timestamp(LocalDateTime.now())
             .build();
         
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
     @Data

@@ -1,5 +1,7 @@
 package com.savinco.financial.application.dto;
 
+import java.math.BigDecimal;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -9,8 +11,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,26 +19,26 @@ import java.math.BigDecimal;
 public class FinancialDataRequest {
     
     @NotBlank(message = "Country code is required")
-    @Schema(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
+    @Schema(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", requiredMode = Schema.RequiredMode.REQUIRED)
     private String countryCode;
 
     @NotBlank(message = "Currency code is required")
     @Schema(description = "Currency code (USD, EUR, PEN, NPR). Must match country: ECU=USD, ESP=EUR, PER=PEN, NPL=NPR", 
-            example = "EUR", required = true)
+            example = "EUR", requiredMode = Schema.RequiredMode.REQUIRED)
     private String currencyCode;
 
     @NotNull(message = "Capital saved is required")
     @DecimalMin(value = "0.0", message = "Capital saved must be non-negative")
-    @Schema(description = "Capital saved in original currency", example = "1000000.00", required = true)
+    @Schema(description = "Capital saved in original currency", example = "1000000.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal capitalSaved;
 
     @NotNull(message = "Capital loaned is required")
     @DecimalMin(value = "0.0", message = "Capital loaned must be non-negative")
-    @Schema(description = "Capital loaned in original currency", example = "5000000.00", required = true)
+    @Schema(description = "Capital loaned in original currency", example = "5000000.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal capitalLoaned;
 
     @NotNull(message = "Profits generated is required")
     @DecimalMin(value = "0.0", message = "Profits generated must be non-negative")
-    @Schema(description = "Profits generated in original currency", example = "500000.00", required = true)
+    @Schema(description = "Profits generated in original currency", example = "500000.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal profitsGenerated;
 }
