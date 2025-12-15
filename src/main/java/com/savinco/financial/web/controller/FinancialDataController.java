@@ -19,6 +19,7 @@ import com.savinco.financial.application.dto.FinancialDataResponse;
 import com.savinco.financial.application.service.FinancialDataService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -62,7 +63,9 @@ public class FinancialDataController {
         @ApiResponse(responseCode = "400", description = "Invalid country code"),
         @ApiResponse(responseCode = "404", description = "Financial data not found for this country")
     })
-    public ResponseEntity<FinancialDataResponse> findByCountryCode(@PathVariable String countryCode) {
+    public ResponseEntity<FinancialDataResponse> findByCountryCode(
+            @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
+            @PathVariable String countryCode) {
         FinancialDataResponse response = financialDataService.findByCountryCode(countryCode);
         return ResponseEntity.ok(response);
     }
@@ -85,6 +88,7 @@ public class FinancialDataController {
         @ApiResponse(responseCode = "404", description = "Financial data not found for this country")
     })
     public ResponseEntity<FinancialDataResponse> update(
+            @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
             @PathVariable String countryCode,
             @Valid @RequestBody FinancialDataRequest request) {
         FinancialDataResponse response = financialDataService.update(countryCode, request);
@@ -98,7 +102,9 @@ public class FinancialDataController {
         @ApiResponse(responseCode = "400", description = "Invalid country code"),
         @ApiResponse(responseCode = "404", description = "Financial data not found for this country")
     })
-    public ResponseEntity<Void> delete(@PathVariable String countryCode) {
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
+            @PathVariable String countryCode) {
         financialDataService.delete(countryCode);
         return ResponseEntity.noContent().build();
     }
