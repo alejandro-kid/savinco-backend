@@ -3,12 +3,12 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - master
       - develop
       - 'feature/**'
   pull_request:
     branches:
-      - main
+      - master
       - develop
 
 env:
@@ -74,7 +74,7 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: lint-and-test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
     
     permissions:
       contents: read
@@ -102,7 +102,7 @@ jobs:
           tags: |
             type=sha,prefix=,enable={{is_default_branch}},format=short
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-,format=short,enable=${{ github.ref != format('refs/heads/{0}', 'main') }}
+            type=sha,prefix={{branch}}-,format=short,enable=${{ github.ref != format('refs/heads/{0}', 'master') }}
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v6
