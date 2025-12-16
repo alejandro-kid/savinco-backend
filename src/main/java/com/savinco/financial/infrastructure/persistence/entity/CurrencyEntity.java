@@ -31,7 +31,7 @@ public class CurrencyEntity {
     @Column(name = "is_base", nullable = false)
     private Boolean isBase;
 
-    @Column(name = "exchange_rate_to_base", nullable = false, precision = 19, scale = 6)
+    @Column(name = "exchange_rate_to_base", nullable = false, precision = 19, scale = 10)
     private BigDecimal exchangeRateToBase;
 
     @Column(name = "created_at", nullable = false, updatable = false)
