@@ -48,7 +48,7 @@ public class FinancialData {
         }
         if (!country.isValidCurrency(currency)) {
             throw new IllegalArgumentException(
-                "Currency " + currency.getCode() + " does not match country " + country.getCode()
+                "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
             );
         }
         if (capitalSaved == null || capitalSaved.compareTo(BigDecimal.ZERO) < 0) {

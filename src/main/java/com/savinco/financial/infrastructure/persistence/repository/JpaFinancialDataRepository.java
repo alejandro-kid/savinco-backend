@@ -8,8 +8,12 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import com.savinco.financial.domain.model.Country;
+import com.savinco.financial.domain.model.CountryCode;
 import com.savinco.financial.domain.model.Currency;
+import com.savinco.financial.domain.model.CurrencyCode;
 import com.savinco.financial.domain.model.FinancialData;
+import com.savinco.financial.domain.repository.CountryRepository;
+import com.savinco.financial.domain.repository.CurrencyRepository;
 import com.savinco.financial.domain.repository.FinancialDataRepository;
 import com.savinco.financial.infrastructure.persistence.entity.FinancialDataEntity;
 
@@ -20,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 public class JpaFinancialDataRepository implements FinancialDataRepository {
 
     private final SpringDataFinancialDataRepository springDataRepository;
+    private final CountryRepository countryRepository;
+    private final CurrencyRepository currencyRepository;
 
     @Override
     @SuppressWarnings("null")
@@ -33,19 +39,19 @@ public class JpaFinancialDataRepository implements FinancialDataRepository {
     }
 
     @Override
-    public Optional<FinancialData> findByCountryCode(Country country) {
-        return springDataRepository.findByCountryCode(country.getCode())
+    public Optional<FinancialData> findByCountryCode(CountryCode countryCode) {
+        return springDataRepository.findByCountryCode(countryCode.getValue())
             .map(this::toDomain);
     }
 
     @Override
-    public boolean existsByCountryCode(Country country) {
-        return springDataRepository.existsByCountryCode(country.getCode());
+    public boolean existsByCountryCode(CountryCode countryCode) {
+        return springDataRepository.existsByCountryCode(countryCode.getValue());
     }
 
     @Override
-    public void deleteByCountryCode(Country country) {
-        springDataRepository.deleteByCountryCode(country.getCode());
+    public void deleteByCountryCode(CountryCode countryCode) {
+        springDataRepository.deleteByCountryCode(countryCode.getValue());
     }
 
     @Override
@@ -63,8 +69,8 @@ public class JpaFinancialDataRepository implements FinancialDataRepository {
     private FinancialDataEntity toEntity(FinancialData domain) {
         return FinancialDataEntity.builder()
             .id(domain.getId())
-            .countryCode(domain.getCountry().getCode())
-            .currencyCode(domain.getCurrency().getCode())
+            .countryCode(domain.getCountry().getCode().getValue())
+            .currencyCode(domain.getCurrency().getCode().getValue())
             .capitalSaved(domain.getCapitalSaved())
             .capitalLoaned(domain.getCapitalLoaned())
             .profitsGenerated(domain.getProfitsGenerated())
@@ -74,8 +80,14 @@ public class JpaFinancialDataRepository implements FinancialDataRepository {
     }
 
     private FinancialData toDomain(@NonNull FinancialDataEntity entity) {
-        Country country = Country.fromCode(entity.getCountryCode());
-        Currency currency = Currency.fromCode(entity.getCurrencyCode());
+        // Load Country and Currency entities from repositories using codes
+        CountryCode countryCode = new CountryCode(entity.getCountryCode());
+        Country country = countryRepository.findByCode(countryCode)
+            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + entity.getCountryCode()));
+        
+        CurrencyCode currencyCode = new CurrencyCode(entity.getCurrencyCode());
+        Currency currency = currencyRepository.findByCode(currencyCode)
+            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + entity.getCurrencyCode()));
         
         return new FinancialData(
             entity.getId(),

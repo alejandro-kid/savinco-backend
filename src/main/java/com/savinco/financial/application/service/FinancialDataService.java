@@ -10,8 +10,12 @@ import com.savinco.financial.application.dto.ConsolidatedSummaryResponse;
 import com.savinco.financial.application.dto.FinancialDataRequest;
 import com.savinco.financial.application.dto.FinancialDataResponse;
 import com.savinco.financial.domain.model.Country;
+import com.savinco.financial.domain.model.CountryCode;
 import com.savinco.financial.domain.model.Currency;
+import com.savinco.financial.domain.model.CurrencyCode;
 import com.savinco.financial.domain.model.FinancialData;
+import com.savinco.financial.domain.repository.CountryRepository;
+import com.savinco.financial.domain.repository.CurrencyRepository;
 import com.savinco.financial.domain.repository.FinancialDataRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,32 +25,32 @@ import lombok.RequiredArgsConstructor;
 public class FinancialDataService {
 
     private final FinancialDataRepository repository;
+    private final CountryRepository countryRepository;
+    private final CurrencyRepository currencyRepository;
     private final CurrencyConverterService currencyConverter;
 
     @Transactional
     public FinancialDataResponse create(FinancialDataRequest request) {
         // Validate country code
-        Country country = Country.fromCode(request.getCountryCode());
-        if (country == null) {
-            throw new IllegalArgumentException("Invalid country code: " + request.getCountryCode());
-        }
+        CountryCode countryCode = new CountryCode(request.getCountryCode());
+        Country country = countryRepository.findByCode(countryCode)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + request.getCountryCode()));
 
         // Validate currency code
-        Currency currency = Currency.fromCode(request.getCurrencyCode());
-        if (currency == null) {
-            throw new IllegalArgumentException("Invalid currency code: " + request.getCurrencyCode());
-        }
+        CurrencyCode currencyCode = new CurrencyCode(request.getCurrencyCode());
+        Currency currency = currencyRepository.findByCode(currencyCode)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid currency code: " + request.getCurrencyCode()));
 
         // Validate currency matches country (before checking existence)
         if (!country.isValidCurrency(currency)) {
             throw new IllegalArgumentException(
-                "Currency " + currency.getCode() + " does not match country " + country.getCode()
-                + ". Expected currency: " + country.getCurrency().getCode()
+                "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
+                + ". Expected currency ID: " + country.getCurrencyId().getValue()
             );
         }
 
         // Check if country already exists
-        if (repository.existsByCountryCode(country)) {
+        if (repository.existsByCountryCode(countryCode)) {
             throw new IllegalStateException("Financial data already exists for country: " + request.getCountryCode());
         }
 
@@ -76,12 +80,11 @@ public class FinancialDataService {
     }
 
     public FinancialDataResponse findByCountryCode(String countryCode) {
-        Country country = Country.fromCode(countryCode);
-        if (country == null) {
-            throw new IllegalArgumentException("Invalid country code: " + countryCode);
-        }
+        CountryCode code = new CountryCode(countryCode);
+        Country country = countryRepository.findByCode(code)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + countryCode));
 
-        FinancialData financialData = repository.findByCountryCode(country)
+        FinancialData financialData = repository.findByCountryCode(code)
             .orElseThrow(() -> new IllegalStateException("Financial data not found for country: " + countryCode));
 
         return buildResponse(financialData);
@@ -90,10 +93,9 @@ public class FinancialDataService {
     @Transactional
     public FinancialDataResponse update(String countryCode, FinancialDataRequest request) {
         // Validate country code from path
-        Country country = Country.fromCode(countryCode);
-        if (country == null) {
-            throw new IllegalArgumentException("Invalid country code: " + countryCode);
-        }
+        CountryCode code = new CountryCode(countryCode);
+        Country country = countryRepository.findByCode(code)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + countryCode));
 
         // Validate that country code in path matches body
         if (!countryCode.equals(request.getCountryCode())) {
@@ -103,21 +105,20 @@ public class FinancialDataService {
         }
 
         // Validate currency code
-        Currency currency = Currency.fromCode(request.getCurrencyCode());
-        if (currency == null) {
-            throw new IllegalArgumentException("Invalid currency code: " + request.getCurrencyCode());
-        }
+        CurrencyCode currencyCode = new CurrencyCode(request.getCurrencyCode());
+        Currency currency = currencyRepository.findByCode(currencyCode)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid currency code: " + request.getCurrencyCode()));
 
         // Validate currency matches country
         if (!country.isValidCurrency(currency)) {
             throw new IllegalArgumentException(
-                "Currency " + currency.getCode() + " does not match country " + country.getCode()
-                + ". Expected currency: " + country.getCurrency().getCode()
+                "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
+                + ". Expected currency ID: " + country.getCurrencyId().getValue()
             );
         }
 
         // Check if country exists
-        FinancialData existingData = repository.findByCountryCode(country)
+        FinancialData existingData = repository.findByCountryCode(code)
             .orElseThrow(() -> new IllegalStateException("Financial data not found for country: " + countryCode));
 
         // Create updated domain entity (preserving id and created timestamp)
@@ -161,8 +162,8 @@ public class FinancialDataService {
                 );
 
                 return ConsolidatedSummaryResponse.CountrySummary.builder()
-                    .countryCode(data.getCountry().getCode())
-                    .countryName(data.getCountry().getName())
+                    .countryCode(data.getCountry().getCode().getValue())
+                    .countryName(data.getCountry().getName().getValue())
                     .capitalSaved(capitalSavedUSD)
                     .capitalLoaned(capitalLoanedUSD)
                     .profitsGenerated(profitsGeneratedUSD)
@@ -199,18 +200,17 @@ public class FinancialDataService {
     @Transactional
     public void delete(String countryCode) {
         // Validate country code
-        Country country = Country.fromCode(countryCode);
-        if (country == null) {
-            throw new IllegalArgumentException("Invalid country code: " + countryCode);
-        }
+        CountryCode code = new CountryCode(countryCode);
+        countryRepository.findByCode(code)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + countryCode));
 
         // Check if country exists
-        if (!repository.existsByCountryCode(country)) {
+        if (!repository.existsByCountryCode(code)) {
             throw new IllegalStateException("Financial data not found for country: " + countryCode);
         }
 
         // Delete
-        repository.deleteByCountryCode(country);
+        repository.deleteByCountryCode(code);
     }
 
     private FinancialDataResponse buildResponse(FinancialData financialData) {
@@ -229,9 +229,9 @@ public class FinancialDataService {
         BigDecimal totalUSD = capitalSavedUSD.add(capitalLoanedUSD).add(profitsGeneratedUSD);
 
         return FinancialDataResponse.builder()
-            .countryCode(financialData.getCountry().getCode())
-            .countryName(financialData.getCountry().getName())
-            .originalCurrency(financialData.getCurrency().getCode())
+            .countryCode(financialData.getCountry().getCode().getValue())
+            .countryName(financialData.getCountry().getName().getValue())
+            .originalCurrency(financialData.getCurrency().getCode().getValue())
             .capitalSaved(capitalSavedUSD)
             .capitalLoaned(capitalLoanedUSD)
             .profitsGenerated(profitsGeneratedUSD)
