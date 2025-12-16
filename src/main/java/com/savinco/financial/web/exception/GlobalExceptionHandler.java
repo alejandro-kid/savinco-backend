@@ -27,8 +27,7 @@ public class GlobalExceptionHandler {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
-            if (errorMessage != null && (errorMessage.toLowerCase().contains("negative")
-                || errorMessage.toLowerCase().contains("non-negative"))) {
+            if (errorMessage != null && !errorMessage.isBlank()) {
                 messageBuilder.append(errorMessage).append("; ");
             }
         });
@@ -50,22 +49,34 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        // Check if it's a "not found" error (404) - some services use IllegalArgumentException for not found
+        String message = ex.getMessage().toLowerCase();
+        HttpStatus status = (message.contains("not found") || message.contains("does not exist")) 
+            ? HttpStatus.NOT_FOUND 
+            : HttpStatus.BAD_REQUEST;
+        
         ErrorResponse errorResponse = ErrorResponse.builder()
-            .status(HttpStatus.BAD_REQUEST.value())
+            .status(status.value())
             .message(ex.getMessage())
             .timestamp(LocalDateTime.now())
             .build();
         
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
         // Check if it's a "not found" error (404) or a conflict error (409)
         String message = ex.getMessage().toLowerCase();
-        HttpStatus status = (message.contains("not found") || message.contains("does not exist")) 
-            ? HttpStatus.NOT_FOUND 
-            : HttpStatus.CONFLICT;
+        HttpStatus status;
+        if (message.contains("not found") || message.contains("does not exist")) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (message.contains("base currency already exists") || message.contains("cannot update exchange rate for base currency")) {
+            // Business rule: attempting to create a second base currency or update base currency rate is a bad request
+            status = HttpStatus.BAD_REQUEST;
+        } else {
+            status = HttpStatus.CONFLICT;
+        }
         
         ErrorResponse errorResponse = ErrorResponse.builder()
             .status(status.value())
