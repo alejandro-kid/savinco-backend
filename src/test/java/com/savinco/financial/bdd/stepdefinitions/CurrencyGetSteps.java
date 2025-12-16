@@ -35,12 +35,6 @@ public class CurrencyGetSteps {
     @LocalServerPort
     private int port;
 
-    @Given("currency exists with code {string} and name {string}")
-    public void currencyExistsWithCodeAndName(String code, String name) {
-        // This will be implemented when we have the repository/service
-        // For now, we assume data exists
-    }
-
     @When("I get currency by code {string}")
     public void iGetCurrencyByCode(String code) {
         String url = urlBuilder.buildCurrencyUrl(port, code);

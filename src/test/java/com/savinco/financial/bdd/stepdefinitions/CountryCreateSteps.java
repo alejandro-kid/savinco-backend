@@ -85,10 +85,20 @@ public class CountryCreateSteps {
         restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
     }
 
-    @Given("no currency exists with code {string}")
-    public void noCurrencyExistsWithCode(String code) {
-        // This will be implemented when we have the repository/service
-        // For now, we assume clean state
+    @Given("country exists with code {string} and currencyCode {string}")
+    public void countryExistsWithCodeAndCurrencyCode(String code, String currencyCode) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("code", code);
+        requestBody.put("name", code.equals("ECU") ? "Ecuador" : (code.equals("ESP") ? "España" : "Country"));
+        requestBody.put("currencyCode", currencyCode);
+
+        String url = urlBuilder.buildCountryUrl(port);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody);
+        try {
+            restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+        } catch (Exception e) {
+            // Country might already exist, ignore
+        }
     }
 
     @When("I create country with:")
@@ -110,42 +120,6 @@ public class CountryCreateSteps {
             new ParameterizedTypeReference<Map<String, Object>>() {}
         );
         testContext.setLastResponse(response);
-    }
-
-    @Then("the response should contain country code {string}")
-    public void theResponseShouldContainCountryCode(String expectedCode) {
-        assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
-        assertNotNull(body, "Response body should not be null");
-        assertEquals(
-            expectedCode,
-            body.get("code"),
-            "Expected country code to be " + expectedCode
-        );
-    }
-
-    @Then("the response should contain country name {string}")
-    public void theResponseShouldContainCountryName(String expectedName) {
-        assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
-        assertNotNull(body, "Response body should not be null");
-        assertEquals(
-            expectedName,
-            body.get("name"),
-            "Expected country name to be " + expectedName
-        );
-    }
-
-    @Then("the response should contain currency code {string}")
-    public void theResponseShouldContainCurrencyCode(String expectedCurrencyCode) {
-        assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
-        assertNotNull(body, "Response body should not be null");
-        assertEquals(
-            expectedCurrencyCode,
-            body.get("currencyCode"),
-            "Expected currency code to be " + expectedCurrencyCode
-        );
     }
 
     @Then("the response should contain error message about duplicate country code")
@@ -176,18 +150,5 @@ public class CountryCreateSteps {
         );
     }
 
-    @Then("the response should contain error message about currency not found")
-    public void theResponseShouldContainErrorMessageAboutCurrencyNotFound() {
-        assertNotNull(testContext.getLastResponse(), "Response should not be null");
-        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
-        assertNotNull(body, "Response body should not be null");
-        Object message = body.get("message");
-        assertNotNull(message, "Error message should not be null");
-        String messageStr = message.toString().toLowerCase();
-        assertTrue(
-            messageStr.contains("not found") || messageStr.contains("does not exist") || messageStr.contains("currency"),
-            "Error message should mention currency not found: " + message
-        );
-    }
 }
 

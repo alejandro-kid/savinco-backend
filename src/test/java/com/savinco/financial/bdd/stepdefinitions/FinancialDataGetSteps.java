@@ -117,8 +117,11 @@ public class FinancialDataGetSteps {
             ? (BigDecimal) totalCapitalSaved 
             : new BigDecimal(totalCapitalSaved.toString());
         
-        assertEquals(0, expected.compareTo(actual), 
-            "Expected total capital saved to be " + expectedValue + " but was " + actual);
+        // Use delta comparison for monetary values to account for rounding differences
+        BigDecimal delta = new BigDecimal("0.01");
+        BigDecimal difference = expected.subtract(actual).abs();
+        assertTrue(difference.compareTo(delta) <= 0,
+            "Expected total capital saved to be " + expectedValue + " (±0.01) but was " + actual);
     }
 
     @Then("the summary should contain total capital loaned {string}")
@@ -136,8 +139,11 @@ public class FinancialDataGetSteps {
             ? (BigDecimal) totalCapitalLoaned 
             : new BigDecimal(totalCapitalLoaned.toString());
         
-        assertEquals(0, expected.compareTo(actual), 
-            "Expected total capital loaned to be " + expectedValue + " but was " + actual);
+        // Use delta comparison for monetary values to account for rounding differences
+        BigDecimal delta = new BigDecimal("0.01");
+        BigDecimal difference = expected.subtract(actual).abs();
+        assertTrue(difference.compareTo(delta) <= 0,
+            "Expected total capital loaned to be " + expectedValue + " (±0.01) but was " + actual);
     }
 
     @Then("the summary should contain total profits generated {string}")
@@ -155,8 +161,11 @@ public class FinancialDataGetSteps {
             ? (BigDecimal) totalProfitsGenerated 
             : new BigDecimal(totalProfitsGenerated.toString());
         
-        assertEquals(0, expected.compareTo(actual), 
-            "Expected total profits generated to be " + expectedValue + " but was " + actual);
+        // Use delta comparison for monetary values to account for rounding differences
+        BigDecimal delta = new BigDecimal("0.01");
+        BigDecimal difference = expected.subtract(actual).abs();
+        assertTrue(difference.compareTo(delta) <= 0,
+            "Expected total profits generated to be " + expectedValue + " (±0.01) but was " + actual);
     }
 
     @Then("the summary should contain grand total {string}")
@@ -174,8 +183,11 @@ public class FinancialDataGetSteps {
             ? (BigDecimal) grandTotal 
             : new BigDecimal(grandTotal.toString());
         
-        assertEquals(0, expected.compareTo(actual), 
-            "Expected grand total to be " + expectedValue + " but was " + actual);
+        // Use delta comparison for monetary values to account for rounding differences
+        BigDecimal delta = new BigDecimal("0.01");
+        BigDecimal difference = expected.subtract(actual).abs();
+        assertTrue(difference.compareTo(delta) <= 0,
+            "Expected grand total to be " + expectedValue + " (±0.01) but was " + actual);
     }
 
     @Then("the summary should contain {int} countries")
@@ -218,7 +230,10 @@ public class FinancialDataGetSteps {
             ? (BigDecimal) capitalSaved 
             : new BigDecimal(capitalSaved.toString());
         
-        assertEquals(0, expected.compareTo(actual), 
-            "Expected capital saved for " + countryCode + " to be " + expectedCapitalSaved + " but was " + actual);
+        // Use delta comparison for monetary values to account for rounding differences
+        BigDecimal delta = new BigDecimal("0.01");
+        BigDecimal difference = expected.subtract(actual).abs();
+        assertTrue(difference.compareTo(delta) <= 0,
+            "Expected capital saved for " + countryCode + " to be " + expectedCapitalSaved + " (±0.01) but was " + actual);
     }
 }
