@@ -30,8 +30,8 @@ Feature: Get Currency
   # SYNC: Error - Currency not found
   Scenario: Fail to get currency when code does not exist
     Given the API is running
-    And no currency exists with code "INVALID"
-    When I get currency by code "INVALID"
+    And no currency exists with code "ZZZ"
+    When I get currency by code "ZZZ"
     Then I should receive status code 404 immediately
     And the response should contain error message about currency not found
 

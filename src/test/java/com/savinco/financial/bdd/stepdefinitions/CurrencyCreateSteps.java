@@ -114,9 +114,11 @@ public class CurrencyCreateSteps {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
         Map<String, Object> body = testContext.getLastResponseBodyAsMap();
         assertNotNull(body, "Response body should not be null");
+        Object actualCode = body.containsKey("currencyCode") ? body.get("currencyCode") : body.get("code");
+        assertNotNull(actualCode, "Currency code should not be null");
         assertEquals(
             expectedCode,
-            body.get("code"),
+            actualCode,
             "Expected currency code to be " + expectedCode
         );
     }
