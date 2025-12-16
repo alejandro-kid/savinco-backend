@@ -36,18 +36,6 @@ public class CurrencyUpdateExchangeRateSteps {
     @LocalServerPort
     private int port;
 
-    @Given("currency exists with code {string} and exchangeRateToBase {string}")
-    public void currencyExistsWithCodeAndExchangeRateToBase(String code, String rate) {
-        // This will be implemented when we have the repository/service
-        // For now, we assume data exists
-    }
-
-    @Given("currency exists with code {string} and isBase {string}")
-    public void currencyExistsWithCodeAndIsBase(String code, String isBaseStr) {
-        // This will be implemented when we have the repository/service
-        // For now, we assume data exists
-    }
-
     @When("I update exchange rate for currency {string} to {string}")
     public void iUpdateExchangeRateForCurrencyTo(String code, String newRate) {
         Map<String, Object> requestBody = new HashMap<>();

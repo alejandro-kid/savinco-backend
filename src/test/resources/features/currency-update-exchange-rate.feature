@@ -23,8 +23,8 @@ Feature: Update Currency Exchange Rate
   # SYNC: Error - Currency not found
   Scenario: Fail to update exchange rate when currency does not exist
     Given the API is running
-    And no currency exists with code "INVALID"
-    When I update exchange rate for currency "INVALID" to "0.90"
+    And no currency exists with code "ZZZ"
+    When I update exchange rate for currency "ZZZ" to "0.90"
     Then I should receive status code 404 immediately
     And the response should contain error message about currency not found
 

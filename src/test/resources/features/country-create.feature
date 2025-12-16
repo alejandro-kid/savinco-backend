@@ -40,11 +40,11 @@ Feature: Create Country
   # SYNC: Error - Currency does not exist
   Scenario: Fail to create country with non-existent currency
     Given the API is running
-    And no currency exists with code "INVALID"
+    And no currency exists with code "ZZZ"
     And no country exists with code "ECU"
     When I create country with:
       | code | name    | currencyCode |
-      | ECU  | Ecuador | INVALID      |
+      | ECU  | Ecuador | ZZZ          |
     Then I should receive status code 404 immediately
     And the response should contain error message about currency not found
 

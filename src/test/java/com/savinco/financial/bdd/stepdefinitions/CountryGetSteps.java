@@ -12,12 +12,12 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.savinco.financial.bdd.support.ApiUrlBuilder;
 import com.savinco.financial.bdd.support.TestContext;
 
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
@@ -34,18 +34,6 @@ public class CountryGetSteps {
 
     @LocalServerPort
     private int port;
-
-    @Given("currency exists with code {string}")
-    public void currencyExistsWithCode(String code) {
-        // This will be implemented when we have the repository/service
-        // For now, we assume data exists
-    }
-
-    @Given("country exists with code {string} and name {string} and currencyCode {string}")
-    public void countryExistsWithCodeAndNameAndCurrencyCode(String code, String name, String currencyCode) {
-        // This will be implemented when we have the repository/service
-        // For now, we assume data exists
-    }
 
     @When("I get country by code {string}")
     public void iGetCountryByCode(String code) {
@@ -69,6 +57,34 @@ public class CountryGetSteps {
             new ParameterizedTypeReference<List<Map<String, Object>>>() {}
         );
         testContext.setLastResponse(response);
+    }
+
+    @Then("the response should contain country code {string}")
+    public void theResponseShouldContainCountryCode(String expectedCode) {
+        assertNotNull(testContext.getLastResponse(), "Response should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object actualCode = body.containsKey("code") ? body.get("code") : body.get("countryCode");
+        assertNotNull(actualCode, "Country code should not be null");
+        assertEquals(
+            expectedCode,
+            actualCode,
+            "Expected country code to be " + expectedCode
+        );
+    }
+
+    @Then("the response should contain country name {string}")
+    public void theResponseShouldContainCountryName(String expectedName) {
+        assertNotNull(testContext.getLastResponse(), "Response should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object actualName = body.containsKey("name") ? body.get("name") : body.get("countryName");
+        assertNotNull(actualName, "Country name should not be null");
+        assertEquals(
+            expectedName,
+            actualName,
+            "Expected country name to be " + expectedName
+        );
     }
 
     @Then("the response should contain {int} countries")

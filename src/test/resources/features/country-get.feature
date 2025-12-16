@@ -30,8 +30,8 @@ Feature: Get Country
   # SYNC: Error - Country not found
   Scenario: Fail to get country when code does not exist
     Given the API is running
-    And no country exists with code "INVALID"
-    When I get country by code "INVALID"
+    And no country exists with code "ZZZ"
+    When I get country by code "ZZZ"
     Then I should receive status code 404 immediately
     And the response should contain error message about country not found
 
