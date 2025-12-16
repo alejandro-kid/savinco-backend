@@ -32,26 +32,42 @@ backend/
 │   │   │   └── com/savinco/financial/
 │   │   │       ├── FinancialApplication.java
 │   │   │       ├── web/controller/
-│   │   │       │   └── HealthController.java
+│   │   │       │   ├── HealthController.java
+│   │   │       │   ├── FinancialDataController.java
+│   │   │       │   ├── CurrencyController.java
+│   │   │       │   └── CountryController.java
 │   │   │       ├── domain/
 │   │   │       │   ├── model/
 │   │   │       │   │   ├── FinancialData.java
+│   │   │       │   │   ├── Currency.java
 │   │   │       │   │   └── Country.java
 │   │   │       │   └── repository/
-│   │   │       │       └── FinancialDataRepository.java
+│   │   │       │       ├── FinancialDataRepository.java
+│   │   │       │       ├── CurrencyRepository.java
+│   │   │       │       └── CountryRepository.java
 │   │   │       ├── application/
 │   │   │       │   ├── service/
 │   │   │       │   │   ├── FinancialDataService.java
+│   │   │       │   │   ├── CurrencyService.java
+│   │   │       │   │   ├── CountryService.java
 │   │   │       │   │   └── CurrencyConverterService.java
 │   │   │       │   └── dto/
 │   │   │       │       ├── FinancialDataRequest.java
 │   │   │       │       ├── FinancialDataResponse.java
-│   │   │       │       └── ConsolidatedSummaryResponse.java
+│   │   │       │       ├── ConsolidatedSummaryResponse.java
+│   │   │       │       ├── CurrencyRequest.java
+│   │   │       │       ├── CurrencyResponse.java
+│   │   │       │       ├── CountryRequest.java
+│   │   │       │       └── CountryResponse.java
 │   │   │       └── infrastructure/
 │   │   │           ├── persistence/entity/
-│   │   │           │   └── FinancialDataEntity.java
+│   │   │           │   ├── FinancialDataEntity.java
+│   │   │           │   ├── CurrencyEntity.java
+│   │   │           │   └── CountryEntity.java
 │   │   │           └── persistence/repository/
-│   │   │               └── JpaFinancialDataRepository.java
+│   │   │               ├── JpaFinancialDataRepository.java
+│   │   │               ├── JpaCurrencyRepository.java
+│   │   │               └── JpaCountryRepository.java
 │   │   └── resources/
 │   │       ├── application.yml
 │   │       └── application-test.yml
@@ -102,6 +118,27 @@ backend/
 | `PUT`  | `/{countryCode}` | Actualiza datos de un país |
 | `DELETE` | `/{countryCode}` | Elimina datos de un país |
 
+### Currency Management (Base URL: `/api/v1/currencies`)
+
+> Estos endpoints gestionan las monedas y sus tasas de cambio.
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET`  | `/` | Lista todas las monedas |
+| `GET`  | `/{code}` | Obtiene una moneda por código |
+| `POST` | `/` | Crea una nueva moneda |
+| `PUT`  | `/{code}/exchange-rate` | Actualiza la tasa de cambio de una moneda |
+
+### Country Management (Base URL: `/api/v1/countries`)
+
+> Estos endpoints gestionan los países y su relación con monedas.
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET`  | `/` | Lista todos los países |
+| `GET`  | `/{code}` | Obtiene un país por código |
+| `POST` | `/` | Crea un nuevo país |
+
 **Ejemplo de request (POST/PUT):**
 
 ```json
@@ -111,6 +148,27 @@ backend/
   "capitalSaved": 1000000.00,
   "capitalLoaned": 5000000.00,
   "profitsGenerated": 500000.00
+}
+```
+
+**Ejemplo de request para crear Currency (POST `/api/v1/currencies`):**
+
+```json
+{
+  "code": "EUR",
+  "name": "Euro",
+  "isBase": false,
+  "exchangeRateToBase": 1.1111111111
+}
+```
+
+**Ejemplo de request para crear Country (POST `/api/v1/countries`):**
+
+```json
+{
+  "code": "ESP",
+  "name": "España",
+  "currencyCode": "EUR"
 }
 ```
 
@@ -169,6 +227,8 @@ mvn test
 ```bash
 mvn test -Dtest=CucumberTest
 ```
+
+**Estado de tests:** 57 tests BDD pasando (1 health check + 9 POST + 10 GET + 11 PUT + 4 DELETE + 22 Currency/Country)
 
 ---
 
