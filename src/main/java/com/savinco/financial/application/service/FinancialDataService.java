@@ -34,18 +34,17 @@ public class FinancialDataService {
         // Validate country code
         CountryCode countryCode = new CountryCode(request.getCountryCode());
         Country country = countryRepository.findByCode(countryCode)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + request.getCountryCode()));
+            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + request.getCountryCode()));
 
         // Validate currency code
         CurrencyCode currencyCode = new CurrencyCode(request.getCurrencyCode());
         Currency currency = currencyRepository.findByCode(currencyCode)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid currency code: " + request.getCurrencyCode()));
+            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + request.getCurrencyCode()));
 
         // Validate currency matches country (before checking existence)
         if (!country.isValidCurrency(currency)) {
             throw new IllegalArgumentException(
                 "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
-                + ". Expected currency ID: " + country.getCurrencyId().getValue()
             );
         }
 
@@ -82,7 +81,7 @@ public class FinancialDataService {
     public FinancialDataResponse findByCountryCode(String countryCode) {
         CountryCode code = new CountryCode(countryCode);
         Country country = countryRepository.findByCode(code)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + countryCode));
+            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + countryCode));
 
         FinancialData financialData = repository.findByCountryCode(code)
             .orElseThrow(() -> new IllegalStateException("Financial data not found for country: " + countryCode));
@@ -95,7 +94,7 @@ public class FinancialDataService {
         // Validate country code from path
         CountryCode code = new CountryCode(countryCode);
         Country country = countryRepository.findByCode(code)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + countryCode));
+            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + countryCode));
 
         // Validate that country code in path matches body
         if (!countryCode.equals(request.getCountryCode())) {
@@ -107,13 +106,12 @@ public class FinancialDataService {
         // Validate currency code
         CurrencyCode currencyCode = new CurrencyCode(request.getCurrencyCode());
         Currency currency = currencyRepository.findByCode(currencyCode)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid currency code: " + request.getCurrencyCode()));
+            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + request.getCurrencyCode()));
 
         // Validate currency matches country
         if (!country.isValidCurrency(currency)) {
             throw new IllegalArgumentException(
                 "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
-                + ". Expected currency ID: " + country.getCurrencyId().getValue()
             );
         }
 
@@ -202,7 +200,7 @@ public class FinancialDataService {
         // Validate country code
         CountryCode code = new CountryCode(countryCode);
         countryRepository.findByCode(code)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid country code: " + countryCode));
+            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + countryCode));
 
         // Check if country exists
         if (!repository.existsByCountryCode(code)) {
