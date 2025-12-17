@@ -19,7 +19,7 @@ Feature: Create Financial Data Record
     And the response should contain profits generated in USD "500000.00"
     And the response should contain total in USD "6500000.00"
 
-  # SYNC: Happy path - Create for Spain with EUR conversion
+  # SYNC: Happy path - Create for Spain with EUR (values in original currency)
   Scenario: Successfully create financial data for Spain with EUR to USD conversion
     Given the API is running
     And no financial data exists for country "ESP"
@@ -30,10 +30,10 @@ Feature: Create Financial Data Record
     And the response should contain country code "ESP"
     And the response should contain country name "España"
     And the response should contain original currency "EUR"
-    And the response should contain capital saved in USD "1111111.11"
-    And the response should contain capital loaned in USD "5555555.56"
-    And the response should contain profits generated in USD "555555.56"
-    And the response should contain total in USD "7222222.23"
+    And the response should contain capital saved in USD "1000000.00"
+    And the response should contain capital loaned in USD "5000000.00"
+    And the response should contain profits generated in USD "500000.00"
+    And the response should contain total in USD "6500000.00"
 
   # SYNC: Error - Duplicate country (most common error)
   Scenario: Fail to create financial data when country already exists
@@ -100,6 +100,6 @@ Feature: Create Financial Data Record
     Then I should receive status code 201 immediately
     And the response should contain country code "PER"
     And the response should contain original currency "PEN"
-    And the response should contain capital saved in USD "374111.48"
-    And the response should contain capital loaned in USD "2992891.88"
-    And the response should contain profits generated in USD "168350.17"
+    And the response should contain capital saved in USD "1234567.89"
+    And the response should contain capital loaned in USD "9876543.21"
+    And the response should contain profits generated in USD "555555.55"

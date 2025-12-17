@@ -21,7 +21,7 @@ Feature: Update Financial Data Record
     And the response should contain profits generated in USD "600000.00"
     And the response should contain total in USD "8600000.00"
 
-  # SYNC: Happy path - Update with currency conversion
+  # SYNC: Happy path - Update with EUR (values in original currency)
   Scenario: Successfully update financial data with EUR to USD conversion
     Given the API is running
     And financial data exists for country "ESP" with:
@@ -34,10 +34,10 @@ Feature: Update Financial Data Record
     And the response should contain country code "ESP"
     And the response should contain country name "España"
     And the response should contain original currency "EUR"
-    And the response should contain capital saved in USD "2222222.22"
-    And the response should contain capital loaned in USD "11111111.11"
-    And the response should contain profits generated in USD "1111111.11"
-    And the response should contain total in USD "14444444.44"
+    And the response should contain capital saved in USD "2000000.00"
+    And the response should contain capital loaned in USD "10000000.00"
+    And the response should contain profits generated in USD "1000000.00"
+    And the response should contain total in USD "13000000.00"
 
   # SYNC: Error - Update country that does not exist
   Scenario: Fail to update financial data when country does not exist

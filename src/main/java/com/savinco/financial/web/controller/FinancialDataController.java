@@ -47,7 +47,7 @@ public class FinancialDataController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all financial data", description = "Retrieve all financial data records with values converted to USD")
+    @Operation(summary = "Get all financial data", description = "Retrieve all financial data records with values in original currency")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Financial data retrieved successfully")
     })
@@ -57,7 +57,7 @@ public class FinancialDataController {
     }
 
     @GetMapping("/{countryCode}")
-    @Operation(summary = "Get financial data by country", description = "Retrieve financial data for a specific country with values converted to USD")
+    @Operation(summary = "Get financial data by country", description = "Retrieve financial data for a specific country with values in original currency")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Financial data retrieved successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid country code"),

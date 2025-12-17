@@ -41,7 +41,7 @@ Feature: Get Financial Data Records
     And the response should contain profits generated in USD "500000.00"
     And the response should contain total in USD "6500000.00"
 
-  # SYNC: Happy path - GET by country code with currency conversion
+  # SYNC: Happy path - GET by country code with EUR (values in original currency)
   Scenario: Successfully get financial data by country code with EUR conversion
     Given the API is running
     And financial data exists for country "ESP" with:
@@ -52,10 +52,10 @@ Feature: Get Financial Data Records
     And the response should contain country code "ESP"
     And the response should contain country name "España"
     And the response should contain original currency "EUR"
-    And the response should contain capital saved in USD "1111111.11"
-    And the response should contain capital loaned in USD "5555555.56"
-    And the response should contain profits generated in USD "555555.56"
-    And the response should contain total in USD "7222222.23"
+    And the response should contain capital saved in USD "1000000.00"
+    And the response should contain capital loaned in USD "5000000.00"
+    And the response should contain profits generated in USD "500000.00"
+    And the response should contain total in USD "6500000.00"
 
   # SYNC: Error - GET by country code (not found)
   Scenario: Fail to get financial data when country does not exist
