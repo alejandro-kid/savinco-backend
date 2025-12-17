@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Financial data response with values converted to USD")
+@Schema(description = "Financial data response with values in original currency")
 public class FinancialDataResponse {
     
     @Schema(description = "Country code", example = "ESP")
@@ -25,19 +25,19 @@ public class FinancialDataResponse {
     @Schema(description = "Original currency code", example = "EUR")
     private String originalCurrency;
     
-    @Schema(description = "Capital saved converted to USD", example = "1111111.11")
+    @Schema(description = "Capital saved in original currency", example = "1000000.00")
     @JsonFormat(shape = JsonFormat.Shape.NUMBER, pattern = "#0.00")
     private BigDecimal capitalSaved;
     
-    @Schema(description = "Capital loaned converted to USD", example = "5555555.56")
+    @Schema(description = "Capital loaned in original currency", example = "5000000.00")
     @JsonFormat(shape = JsonFormat.Shape.NUMBER, pattern = "#0.00")
     private BigDecimal capitalLoaned;
     
-    @Schema(description = "Profits generated converted to USD", example = "555555.56")
+    @Schema(description = "Profits generated in original currency", example = "500000.00")
     @JsonFormat(shape = JsonFormat.Shape.NUMBER, pattern = "#0.00")
     private BigDecimal profitsGenerated;
     
-    @Schema(description = "Total amount in USD (capitalSaved + capitalLoaned + profitsGenerated)", example = "7222222.23")
+    @Schema(description = "Total amount in original currency (capitalSaved + capitalLoaned + profitsGenerated)", example = "6500000.00")
     @JsonFormat(shape = JsonFormat.Shape.NUMBER, pattern = "#0.00")
     private BigDecimal totalInUSD;
 }

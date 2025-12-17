@@ -212,28 +212,21 @@ public class FinancialDataService {
     }
 
     private FinancialDataResponse buildResponse(FinancialData financialData) {
-        BigDecimal capitalSavedUSD = currencyConverter.convertToUSD(
-            financialData.getCurrency(), 
-            financialData.getCapitalSaved()
-        );
-        BigDecimal capitalLoanedUSD = currencyConverter.convertToUSD(
-            financialData.getCurrency(), 
-            financialData.getCapitalLoaned()
-        );
-        BigDecimal profitsGeneratedUSD = currencyConverter.convertToUSD(
-            financialData.getCurrency(), 
-            financialData.getProfitsGenerated()
-        );
-        BigDecimal totalUSD = capitalSavedUSD.add(capitalLoanedUSD).add(profitsGeneratedUSD);
+        // Return values in original currency (not converted to USD)
+        // Conversion to USD only happens in getSummary()
+        BigDecimal capitalSaved = financialData.getCapitalSaved();
+        BigDecimal capitalLoaned = financialData.getCapitalLoaned();
+        BigDecimal profitsGenerated = financialData.getProfitsGenerated();
+        BigDecimal total = capitalSaved.add(capitalLoaned).add(profitsGenerated);
 
         return FinancialDataResponse.builder()
             .countryCode(financialData.getCountry().getCode().getValue())
             .countryName(financialData.getCountry().getName().getValue())
             .originalCurrency(financialData.getCurrency().getCode().getValue())
-            .capitalSaved(capitalSavedUSD)
-            .capitalLoaned(capitalLoanedUSD)
-            .profitsGenerated(profitsGeneratedUSD)
-            .totalInUSD(totalUSD)
+            .capitalSaved(capitalSaved)
+            .capitalLoaned(capitalLoaned)
+            .profitsGenerated(profitsGenerated)
+            .totalInUSD(total)
             .build();
     }
 }
