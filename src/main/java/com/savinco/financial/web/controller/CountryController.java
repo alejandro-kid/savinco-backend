@@ -27,10 +27,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/countries")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Country", description = "API for managing countries and their associated currencies")
 public class CountryController {
 
@@ -46,12 +48,19 @@ public class CountryController {
         @ApiResponse(responseCode = "409", description = "Country already exists with this code")
     })
     public ResponseEntity<CountryResponse> create(@Valid @RequestBody CountryRequest request) {
+        log.info("Creating country: code={}, name={}, currencyCode={}", 
+            request.getCode(), request.getName(), request.getCurrencyCode());
+        
         Country country = countryService.create(
             request.getCode(),
             request.getName(),
             request.getCurrencyCode()
         );
         CountryResponse response = toResponse(country);
+        
+        log.info("Country created successfully: id={}, code={}", 
+            response.getId(), response.getCode());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -61,10 +70,13 @@ public class CountryController {
         @ApiResponse(responseCode = "200", description = "Countries retrieved successfully")
     })
     public ResponseEntity<List<CountryResponse>> findAll() {
+        log.debug("Finding all countries");
         List<Country> countries = countryService.findAll();
         List<CountryResponse> response = countries.stream()
             .map(this::toResponse)
             .toList();
+        
+        log.info("Found {} countries", response.size());
         return ResponseEntity.ok(response);
     }
 
@@ -78,8 +90,11 @@ public class CountryController {
     public ResponseEntity<CountryResponse> findByCode(
             @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ECU", required = true)
             @PathVariable String code) {
+        log.debug("Finding country by code: {}", code);
         Country country = countryService.findByCode(code);
         CountryResponse response = toResponse(country);
+        
+        log.info("Country found: code={}, id={}", code, response.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -94,7 +109,10 @@ public class CountryController {
     public ResponseEntity<Void> delete(
             @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ECU", required = true)
             @PathVariable String code) {
+        log.info("Deleting country: code={}", code);
         countryService.delete(code);
+        
+        log.info("Country deleted successfully: code={}", code);
         return ResponseEntity.noContent().build();
     }
 

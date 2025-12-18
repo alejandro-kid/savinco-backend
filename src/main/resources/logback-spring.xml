@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Property definitions -->
+    <property name="LOG_PATTERN_CONSOLE" value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%thread]){magenta} %clr(%-5level){highlight} %clr([%X{requestId:-}]){cyan} %clr(%logger{36}){blue} - %msg%n"/>
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN_CONSOLE}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- HTTP Request/Response Logger -->
+    <logger name="com.savinco.financial.web.config.HttpLoggingInterceptor" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Application Loggers -->
+    <logger name="com.savinco.financial" level="${LOG_LEVEL_APP:-DEBUG}"/>
+    
+    <!-- Spring Framework Loggers -->
+    <logger name="org.springframework.web" level="${LOG_LEVEL_SPRING_WEB:-INFO}"/>
+    <logger name="org.springframework.security" level="INFO"/>
+    
+    <!-- Hibernate/JPA Loggers -->
+    <logger name="org.hibernate.SQL" level="${LOG_LEVEL_HIBERNATE_SQL:-DEBUG}"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    
+    <!-- Database Connection Pool -->
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    
+    <!-- Reduce noise from other libraries -->
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
+    <logger name="org.apache.coyote" level="WARN"/>
+    <logger name="org.springframework.boot.autoconfigure" level="INFO"/>
+
+    <!-- Root Logger - Console only -->
+    <root level="${LOG_LEVEL_ROOT:-INFO}">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Profile-specific configurations -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="test">
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>

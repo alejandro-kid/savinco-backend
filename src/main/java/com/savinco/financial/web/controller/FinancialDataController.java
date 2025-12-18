@@ -25,10 +25,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/financial-data")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Financial Data", description = "API for managing financial data by country")
 public class FinancialDataController {
 
@@ -42,7 +44,13 @@ public class FinancialDataController {
         @ApiResponse(responseCode = "409", description = "Financial data already exists for this country")
     })
     public ResponseEntity<FinancialDataResponse> create(@Valid @RequestBody FinancialDataRequest request) {
+        log.info("Creating financial data: countryCode={}, currencyCode={}, capitalSaved={}, capitalLoaned={}, profitsGenerated={}", 
+            request.getCountryCode(), request.getCurrencyCode(), 
+            request.getCapitalSaved(), request.getCapitalLoaned(), request.getProfitsGenerated());
+        
         FinancialDataResponse response = financialDataService.create(request);
+        
+        log.info("Financial data created successfully: countryCode={}", response.getCountryCode());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -52,7 +60,10 @@ public class FinancialDataController {
         @ApiResponse(responseCode = "200", description = "Financial data retrieved successfully")
     })
     public ResponseEntity<List<FinancialDataResponse>> findAll() {
+        log.debug("Finding all financial data");
         List<FinancialDataResponse> response = financialDataService.findAll();
+        
+        log.info("Found {} financial data records", response.size());
         return ResponseEntity.ok(response);
     }
 
@@ -66,7 +77,10 @@ public class FinancialDataController {
     public ResponseEntity<FinancialDataResponse> findByCountryCode(
             @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
             @PathVariable String countryCode) {
+        log.debug("Finding financial data by country code: {}", countryCode);
         FinancialDataResponse response = financialDataService.findByCountryCode(countryCode);
+        
+        log.info("Financial data found: countryCode={}", countryCode);
         return ResponseEntity.ok(response);
     }
 
@@ -76,7 +90,11 @@ public class FinancialDataController {
         @ApiResponse(responseCode = "200", description = "Summary retrieved successfully")
     })
     public ResponseEntity<ConsolidatedSummaryResponse> getSummary() {
+        log.debug("Getting consolidated summary");
         ConsolidatedSummaryResponse response = financialDataService.getSummary();
+        
+        log.info("Consolidated summary generated: grandTotal={}, countriesCount={}", 
+            response.getGrandTotal(), response.getByCountry().size());
         return ResponseEntity.ok(response);
     }
 
@@ -91,7 +109,12 @@ public class FinancialDataController {
             @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
             @PathVariable String countryCode,
             @Valid @RequestBody FinancialDataRequest request) {
+        log.info("Updating financial data: countryCode={}, capitalSaved={}, capitalLoaned={}, profitsGenerated={}", 
+            countryCode, request.getCapitalSaved(), request.getCapitalLoaned(), request.getProfitsGenerated());
+        
         FinancialDataResponse response = financialDataService.update(countryCode, request);
+        
+        log.info("Financial data updated successfully: countryCode={}", countryCode);
         return ResponseEntity.ok(response);
     }
 
@@ -105,7 +128,10 @@ public class FinancialDataController {
     public ResponseEntity<Void> delete(
             @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ESP", required = true)
             @PathVariable String countryCode) {
+        log.info("Deleting financial data: countryCode={}", countryCode);
         financialDataService.delete(countryCode);
+        
+        log.info("Financial data deleted successfully: countryCode={}", countryCode);
         return ResponseEntity.noContent().build();
     }
 }

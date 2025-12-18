@@ -15,8 +15,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -36,6 +38,8 @@ public class GlobalExceptionHandler {
         if (message.endsWith("; ")) {
             message = message.substring(0, message.length() - 2);
         }
+        
+        log.warn("Validation error: {}", message, ex);
         
         ErrorResponse errorResponse = ErrorResponse.builder()
             .status(HttpStatus.BAD_REQUEST.value())
@@ -71,11 +75,14 @@ public class GlobalExceptionHandler {
         HttpStatus status;
         if (message.contains("not found") || message.contains("does not exist")) {
             status = HttpStatus.NOT_FOUND;
+            log.warn("Resource not found: {}", ex.getMessage());
         } else if (message.contains("base currency already exists") || message.contains("cannot update exchange rate for base currency")) {
             // Business rule: attempting to create a second base currency or update base currency rate is a bad request
             status = HttpStatus.BAD_REQUEST;
+            log.warn("Business rule violation: {}", ex.getMessage());
         } else {
             status = HttpStatus.CONFLICT;
+            log.warn("Conflict error: {}", ex.getMessage());
         }
         
         ErrorResponse errorResponse = ErrorResponse.builder()
