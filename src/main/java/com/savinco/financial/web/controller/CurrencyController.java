@@ -26,10 +26,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/currencies")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Currency", description = "API for managing currencies and exchange rates")
 public class CurrencyController {
 
@@ -47,6 +49,9 @@ public class CurrencyController {
         @ApiResponse(responseCode = "409", description = "Currency already exists with this code or attempt to create base currency when one already exists")
     })
     public ResponseEntity<CurrencyResponse> create(@Valid @RequestBody CurrencyRequest request) {
+        log.info("Creating currency: code={}, name={}, isBase={}, exchangeRateToBase={}", 
+            request.getCode(), request.getName(), request.getIsBase(), request.getExchangeRateToBase());
+        
         Currency currency = currencyService.create(
             request.getCode(),
             request.getName(),
@@ -54,6 +59,10 @@ public class CurrencyController {
             request.getExchangeRateToBase()
         );
         CurrencyResponse response = toResponse(currency);
+        
+        log.info("Currency created successfully: id={}, code={}, isBase={}", 
+            response.getId(), response.getCode(), response.getIsBase());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -63,10 +72,13 @@ public class CurrencyController {
         @ApiResponse(responseCode = "200", description = "Currencies retrieved successfully")
     })
     public ResponseEntity<List<CurrencyResponse>> findAll() {
+        log.debug("Finding all currencies");
         List<Currency> currencies = currencyService.findAll();
         List<CurrencyResponse> response = currencies.stream()
             .map(this::toResponse)
             .toList();
+        
+        log.info("Found {} currencies", response.size());
         return ResponseEntity.ok(response);
     }
 
@@ -80,8 +92,11 @@ public class CurrencyController {
     public ResponseEntity<CurrencyResponse> findByCode(
             @Parameter(description = "Currency code (USD, EUR, PEN, NPR)", example = "EUR", required = true)
             @PathVariable String code) {
+        log.debug("Finding currency by code: {}", code);
         Currency currency = currencyService.findByCode(code);
         CurrencyResponse response = toResponse(currency);
+        
+        log.info("Currency found: code={}, id={}", code, response.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -92,8 +107,11 @@ public class CurrencyController {
         @ApiResponse(responseCode = "404", description = "Base currency not found")
     })
     public ResponseEntity<CurrencyResponse> getBaseCurrency() {
+        log.debug("Finding base currency");
         Currency currency = currencyService.getBaseCurrency();
         CurrencyResponse response = toResponse(currency);
+        
+        log.info("Base currency found: code={}, id={}", response.getCode(), response.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -108,8 +126,14 @@ public class CurrencyController {
             @Parameter(description = "Currency code (EUR, PEN, NPR)", example = "EUR", required = true)
             @PathVariable String code,
             @Valid @RequestBody UpdateExchangeRateRequest request) {
+        log.info("Updating exchange rate: code={}, newRate={}", code, request.getExchangeRateToBase());
+        
         Currency currency = currencyService.updateExchangeRate(code, request.getExchangeRateToBase());
         CurrencyResponse response = toResponse(currency);
+        
+        log.info("Exchange rate updated successfully: code={}, newRate={}", 
+            code, response.getExchangeRateToBase());
+        
         return ResponseEntity.ok(response);
     }
 
@@ -127,7 +151,10 @@ public class CurrencyController {
     public ResponseEntity<Void> delete(
             @Parameter(description = "Currency code (USD, EUR, PEN, NPR)", example = "EUR", required = true)
             @PathVariable String code) {
+        log.info("Deleting currency: code={}", code);
         currencyService.delete(code);
+        
+        log.info("Currency deleted successfully: code={}", code);
         return ResponseEntity.noContent().build();
     }
 

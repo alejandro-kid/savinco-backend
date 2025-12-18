@@ -13,9 +13,11 @@ import com.savinco.financial.domain.repository.CurrencyRepository;
 import com.savinco.financial.domain.repository.CountryRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CurrencyService {
 
     private final CurrencyRepository repository;
@@ -23,11 +25,15 @@ public class CurrencyService {
 
     @Transactional
     public Currency create(String code, String name, Boolean isBase, BigDecimal exchangeRateToBase) {
+        log.debug("Creating currency: code={}, name={}, isBase={}, exchangeRateToBase={}", 
+            code, name, isBase, exchangeRateToBase);
+        
         // Validate code format
         CurrencyCode currencyCode = new CurrencyCode(code);
 
         // Check if currency already exists
         if (repository.existsByCode(currencyCode)) {
+            log.warn("Currency creation failed: currency already exists with code={}", code);
             throw new IllegalStateException("Currency already exists with code: " + code);
         }
 
@@ -41,9 +47,11 @@ public class CurrencyService {
             // First currency: automatically becomes base with rate = 1
             willBeBase = true;
             finalExchangeRate = BigDecimal.ONE;
+            log.info("First currency created, automatically set as base: code={}", code);
         } else {
             // Not the first currency: cannot be base
             if (isBase != null && isBase) {
+                log.warn("Currency creation failed: attempt to create base currency when one already exists");
                 throw new IllegalStateException(
                     "Cannot create currency as base. Base currency already exists. " +
                     "Only the first currency created becomes the base currency automatically."
@@ -62,11 +70,17 @@ public class CurrencyService {
             .build());
 
         // Save
-        return repository.save(currency);
+        Currency saved = repository.save(currency);
+        log.info("Currency created successfully: code={}, id={}, isBase={}", 
+            code, saved.getId().getValue(), saved.isBase());
+        return saved;
     }
 
     public List<Currency> findAll() {
-        return repository.findAll();
+        log.debug("Finding all currencies");
+        List<Currency> currencies = repository.findAll();
+        log.debug("Found {} currencies", currencies.size());
+        return currencies;
     }
 
     public Currency findByCode(String code) {
@@ -76,8 +90,14 @@ public class CurrencyService {
     }
 
     public Currency getBaseCurrency() {
-        return repository.findBaseCurrency()
-            .orElseThrow(() -> new IllegalStateException("Base currency not found"));
+        log.debug("Finding base currency");
+        Currency currency = repository.findBaseCurrency()
+            .orElseThrow(() -> {
+                log.warn("Base currency not found");
+                return new IllegalStateException("Base currency not found");
+            });
+        log.debug("Base currency found: code={}, id={}", currency.getCode().getValue(), currency.getId().getValue());
+        return currency;
     }
 
     @Transactional
@@ -95,12 +115,17 @@ public class CurrencyService {
 
     @Transactional
     public void delete(String code) {
+        log.debug("Deleting currency: code={}", code);
         CurrencyCode currencyCode = new CurrencyCode(code);
         Currency currency = repository.findByCode(currencyCode)
-            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + code));
+            .orElseThrow(() -> {
+                log.warn("Currency deletion failed: currency not found with code={}", code);
+                return new IllegalStateException("Currency not found with code: " + code);
+            });
 
         // Validate that no countries are using this currency
         if (countryRepository.existsByCurrencyId(currency.getId().getValue())) {
+            log.warn("Currency deletion failed: countries associated with currency code={}", code);
             throw new IllegalStateException("Cannot delete currency with code: " + code + ". There are countries associated with this currency.");
         }
 
@@ -108,6 +133,7 @@ public class CurrencyService {
         if (currency.isBase()) {
             long currencyCount = repository.count();
             if (currencyCount > 1) {
+                log.warn("Currency deletion failed: cannot delete base currency when other currencies exist, code={}", code);
                 throw new IllegalStateException(
                     "Cannot delete base currency with code: " + code + 
                     ". Base currency can only be deleted if it is the only currency in the database."
@@ -117,6 +143,7 @@ public class CurrencyService {
 
         // Delete
         repository.deleteById(currency.getId().getValue());
+        log.info("Currency deleted successfully: code={}, id={}", code, currency.getId().getValue());
     }
 }
 

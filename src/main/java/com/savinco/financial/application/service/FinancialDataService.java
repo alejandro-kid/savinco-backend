@@ -19,9 +19,11 @@ import com.savinco.financial.domain.repository.CurrencyRepository;
 import com.savinco.financial.domain.repository.FinancialDataRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FinancialDataService {
 
     private final FinancialDataRepository repository;
@@ -31,18 +33,30 @@ public class FinancialDataService {
 
     @Transactional
     public FinancialDataResponse create(FinancialDataRequest request) {
+        log.debug("Creating financial data: countryCode={}, currencyCode={}, capitalSaved={}, capitalLoaned={}, profitsGenerated={}", 
+            request.getCountryCode(), request.getCurrencyCode(), 
+            request.getCapitalSaved(), request.getCapitalLoaned(), request.getProfitsGenerated());
+        
         // Validate country code
         CountryCode countryCode = new CountryCode(request.getCountryCode());
         Country country = countryRepository.findByCode(countryCode)
-            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + request.getCountryCode()));
+            .orElseThrow(() -> {
+                log.warn("Financial data creation failed: country not found with code={}", request.getCountryCode());
+                return new IllegalStateException("Country not found with code: " + request.getCountryCode());
+            });
 
         // Validate currency code
         CurrencyCode currencyCode = new CurrencyCode(request.getCurrencyCode());
         Currency currency = currencyRepository.findByCode(currencyCode)
-            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + request.getCurrencyCode()));
+            .orElseThrow(() -> {
+                log.warn("Financial data creation failed: currency not found with code={}", request.getCurrencyCode());
+                return new IllegalStateException("Currency not found with code: " + request.getCurrencyCode());
+            });
 
         // Validate currency matches country (before checking existence)
         if (!country.isValidCurrency(currency)) {
+            log.warn("Financial data creation failed: currency {} does not match country {}", 
+                currency.getCode().getValue(), country.getCode().getValue());
             throw new IllegalArgumentException(
                 "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
             );
@@ -50,6 +64,7 @@ public class FinancialDataService {
 
         // Check if country already exists
         if (repository.existsByCountryCode(countryCode)) {
+            log.warn("Financial data creation failed: financial data already exists for country={}", request.getCountryCode());
             throw new IllegalStateException("Financial data already exists for country: " + request.getCountryCode());
         }
 
@@ -67,37 +82,57 @@ public class FinancialDataService {
 
         // Save
         FinancialData saved = repository.save(financialData);
+        log.info("Financial data created successfully: countryCode={}", request.getCountryCode());
 
         // Convert to USD and build response
         return buildResponse(saved);
     }
 
     public List<FinancialDataResponse> findAll() {
-        return repository.findAll().stream()
+        log.debug("Finding all financial data");
+        List<FinancialDataResponse> response = repository.findAll().stream()
             .map(this::buildResponse)
             .toList();
+        log.debug("Found {} financial data records", response.size());
+        return response;
     }
 
     public FinancialDataResponse findByCountryCode(String countryCode) {
+        log.debug("Finding financial data by country code: {}", countryCode);
         CountryCode code = new CountryCode(countryCode);
         Country country = countryRepository.findByCode(code)
-            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + countryCode));
+            .orElseThrow(() -> {
+                log.warn("Financial data lookup failed: country not found with code={}", countryCode);
+                return new IllegalStateException("Country not found with code: " + countryCode);
+            });
 
         FinancialData financialData = repository.findByCountryCode(code)
-            .orElseThrow(() -> new IllegalStateException("Financial data not found for country: " + countryCode));
+            .orElseThrow(() -> {
+                log.warn("Financial data not found for country: code={}", countryCode);
+                return new IllegalStateException("Financial data not found for country: " + countryCode);
+            });
 
+        log.debug("Financial data found: countryCode={}", countryCode);
         return buildResponse(financialData);
     }
 
     @Transactional
     public FinancialDataResponse update(String countryCode, FinancialDataRequest request) {
+        log.debug("Updating financial data: countryCode={}, capitalSaved={}, capitalLoaned={}, profitsGenerated={}", 
+            countryCode, request.getCapitalSaved(), request.getCapitalLoaned(), request.getProfitsGenerated());
+        
         // Validate country code from path
         CountryCode code = new CountryCode(countryCode);
         Country country = countryRepository.findByCode(code)
-            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + countryCode));
+            .orElseThrow(() -> {
+                log.warn("Financial data update failed: country not found with code={}", countryCode);
+                return new IllegalStateException("Country not found with code: " + countryCode);
+            });
 
         // Validate that country code in path matches body
         if (!countryCode.equals(request.getCountryCode())) {
+            log.warn("Financial data update failed: country code mismatch. path={}, body={}", 
+                countryCode, request.getCountryCode());
             throw new IllegalArgumentException(
                 "Country code in path (" + countryCode + ") does not match country code in body (" + request.getCountryCode() + ")"
             );
@@ -106,10 +141,15 @@ public class FinancialDataService {
         // Validate currency code
         CurrencyCode currencyCode = new CurrencyCode(request.getCurrencyCode());
         Currency currency = currencyRepository.findByCode(currencyCode)
-            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + request.getCurrencyCode()));
+            .orElseThrow(() -> {
+                log.warn("Financial data update failed: currency not found with code={}", request.getCurrencyCode());
+                return new IllegalStateException("Currency not found with code: " + request.getCurrencyCode());
+            });
 
         // Validate currency matches country
         if (!country.isValidCurrency(currency)) {
+            log.warn("Financial data update failed: currency {} does not match country {}", 
+                currency.getCode().getValue(), country.getCode().getValue());
             throw new IllegalArgumentException(
                 "Currency " + currency.getCode().getValue() + " does not match country " + country.getCode().getValue()
             );
@@ -117,7 +157,10 @@ public class FinancialDataService {
 
         // Check if country exists
         FinancialData existingData = repository.findByCountryCode(code)
-            .orElseThrow(() -> new IllegalStateException("Financial data not found for country: " + countryCode));
+            .orElseThrow(() -> {
+                log.warn("Financial data update failed: financial data not found for country={}", countryCode);
+                return new IllegalStateException("Financial data not found for country: " + countryCode);
+            });
 
         // Create updated domain entity (preserving id and created timestamp)
         // updatedAt will be set automatically by JPA @PreUpdate
@@ -136,12 +179,14 @@ public class FinancialDataService {
 
         // Save
         FinancialData saved = repository.save(updatedData);
+        log.info("Financial data updated successfully: countryCode={}", countryCode);
 
         // Convert to USD and build response
         return buildResponse(saved);
     }
 
     public ConsolidatedSummaryResponse getSummary() {
+        log.debug("Generating consolidated summary");
         List<FinancialData> allData = repository.findAll();
 
         List<ConsolidatedSummaryResponse.CountrySummary> countrySummaries = allData.stream()
@@ -197,18 +242,25 @@ public class FinancialDataService {
 
     @Transactional
     public void delete(String countryCode) {
+        log.debug("Deleting financial data: countryCode={}", countryCode);
+        
         // Validate country code
         CountryCode code = new CountryCode(countryCode);
         countryRepository.findByCode(code)
-            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + countryCode));
+            .orElseThrow(() -> {
+                log.warn("Financial data deletion failed: country not found with code={}", countryCode);
+                return new IllegalStateException("Country not found with code: " + countryCode);
+            });
 
         // Check if country exists
         if (!repository.existsByCountryCode(code)) {
+            log.warn("Financial data deletion failed: financial data not found for country={}", countryCode);
             throw new IllegalStateException("Financial data not found for country: " + countryCode);
         }
 
         // Delete
         repository.deleteByCountryCode(code);
+        log.info("Financial data deleted successfully: countryCode={}", countryCode);
     }
 
     private FinancialDataResponse buildResponse(FinancialData financialData) {

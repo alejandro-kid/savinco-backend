@@ -43,8 +43,11 @@ management:
       show-details: ${ACTUATOR_HEALTH_DETAILS:when-authorized}
 
 logging:
+  config: classpath:logback-spring.xml
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
     com.savinco.financial: ${LOG_LEVEL_APP:DEBUG}
     org.springframework.web: ${LOG_LEVEL_SPRING_WEB:INFO}
     org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:DEBUG}
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%thread]){magenta} %clr(%-5level){highlight} %clr([%X{requestId:-}]){cyan} %clr(%logger{36}){blue} - %msg%n"
