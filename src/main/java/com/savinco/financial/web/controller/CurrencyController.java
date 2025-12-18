@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -106,6 +107,21 @@ public class CurrencyController {
         Currency currency = currencyService.updateExchangeRate(code, request.getExchangeRateToBase());
         CurrencyResponse response = toResponse(currency);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{code}")
+    @Operation(summary = "Delete currency", description = "Delete a currency. Cannot delete if countries are associated with it.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Currency deleted successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid currency code format"),
+        @ApiResponse(responseCode = "404", description = "Currency not found"),
+        @ApiResponse(responseCode = "409", description = "Cannot delete currency: countries are associated with it")
+    })
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "Currency code (USD, EUR, PEN, NPR)", example = "EUR", required = true)
+            @PathVariable String code) {
+        currencyService.delete(code);
+        return ResponseEntity.noContent().build();
     }
 
     private CurrencyResponse toResponse(Currency currency) {

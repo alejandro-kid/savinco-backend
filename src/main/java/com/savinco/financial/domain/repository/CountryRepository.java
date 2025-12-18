@@ -12,6 +12,7 @@ public interface CountryRepository {
     Optional<Country> findByCode(CountryCode code);
     List<Country> findAll();
     boolean existsByCode(CountryCode code);
+    boolean existsByCurrencyId(Long currencyId);
     void deleteById(Long id);
     void deleteAll();
 }
