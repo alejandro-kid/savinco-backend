@@ -6,6 +6,7 @@ Feature: Update Currency Exchange Rate
   # SYNC: Happy path - Update exchange rate for non-base currency
   Scenario: Successfully update exchange rate for non-base currency
     Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
     And currency exists with code "EUR" and exchangeRateToBase "0.90"
     When I update exchange rate for currency "EUR" to "0.95"
     Then I should receive status code 200 immediately
@@ -15,7 +16,7 @@ Feature: Update Currency Exchange Rate
   # SYNC: Error - Try to update base currency exchange rate
   Scenario: Fail to update exchange rate for base currency
     Given the API is running
-    And currency exists with code "USD" and isBase "true"
+    And currency exists with code "USD" and name "US Dollar"
     When I update exchange rate for currency "USD" to "1.10"
     Then I should receive status code 400 immediately
     And the response should contain error message about cannot update base currency rate
@@ -31,6 +32,7 @@ Feature: Update Currency Exchange Rate
   # SYNC: Error - Negative exchange rate
   Scenario: Fail to update exchange rate with negative value
     Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
     And currency exists with code "EUR" and exchangeRateToBase "0.90"
     When I update exchange rate for currency "EUR" to "-0.90"
     Then I should receive status code 400 immediately
@@ -39,6 +41,7 @@ Feature: Update Currency Exchange Rate
   # SYNC: Error - Zero exchange rate for non-base currency
   Scenario: Fail to update exchange rate to zero for non-base currency
     Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
     And currency exists with code "EUR" and exchangeRateToBase "0.90"
     When I update exchange rate for currency "EUR" to "0.00"
     Then I should receive status code 400 immediately
@@ -47,6 +50,7 @@ Feature: Update Currency Exchange Rate
   # SYNC: Edge case - Update with same value (should succeed)
   Scenario: Successfully update exchange rate with same value
     Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
     And currency exists with code "EUR" and exchangeRateToBase "0.90"
     When I update exchange rate for currency "EUR" to "0.90"
     Then I should receive status code 200 immediately

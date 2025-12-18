@@ -49,10 +49,13 @@ public class CurrencyCreateSteps {
     public void currencyExistsWithCodeAndName(String code, String name) {
         // This will be implemented when we have the repository/service
         // For now, we'll create the data via API
+        // The service will automatically determine if this is the base currency
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("code", code);
         requestBody.put("name", name);
-        requestBody.put("isBase", code.equals("USD"));
+        // Don't send isBase - let the service determine it automatically
+        // If it's the first currency, it becomes base with rate 1.00
+        // If not, it uses the provided rate
         requestBody.put("exchangeRateToBase", code.equals("USD") ? BigDecimal.ONE : new BigDecimal("0.90"));
 
         String url = urlBuilder.buildCurrencyUrl(port);
@@ -66,7 +69,13 @@ public class CurrencyCreateSteps {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("code", code);
         requestBody.put("name", code.equals("USD") ? "US Dollar" : "Euro");
-        requestBody.put("isBase", isBase);
+        // Only send isBase if explicitly true (for first currency)
+        // The service will reject if isBase=true and a base currency already exists
+        if (isBase) {
+            requestBody.put("isBase", true);
+        }
+        // If it's the first currency, it will become base with rate 1.00 automatically
+        // If not, use the provided rate
         requestBody.put("exchangeRateToBase", isBase ? BigDecimal.ONE : new BigDecimal("0.90"));
 
         String url = urlBuilder.buildCurrencyUrl(port);
@@ -79,7 +88,9 @@ public class CurrencyCreateSteps {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("code", code);
         requestBody.put("name", code.equals("USD") ? "US Dollar" : "Euro");
-        requestBody.put("isBase", code.equals("USD"));
+        // Don't send isBase - let the service determine it automatically
+        // If it's the first currency, it becomes base with rate 1.00 (ignoring provided rate)
+        // If not, it uses the provided rate
         requestBody.put("exchangeRateToBase", new BigDecimal(rate));
 
         String url = urlBuilder.buildCurrencyUrl(port);

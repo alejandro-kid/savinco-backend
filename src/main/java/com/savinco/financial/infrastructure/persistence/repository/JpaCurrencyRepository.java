@@ -65,6 +65,11 @@ public class JpaCurrencyRepository implements CurrencyRepository {
     }
 
     @Override
+    public long count() {
+        return springDataRepository.count();
+    }
+
+    @Override
     public void deleteById(Long id) {
         springDataRepository.deleteById(id);
     }

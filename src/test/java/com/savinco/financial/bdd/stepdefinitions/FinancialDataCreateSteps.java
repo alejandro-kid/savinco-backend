@@ -129,7 +129,9 @@ public class FinancialDataCreateSteps {
             correctCurrencyRequestBody.put("name", correctCurrency.equals("USD") ? "US Dollar" : 
                 (correctCurrency.equals("EUR") ? "Euro" : 
                 (correctCurrency.equals("PEN") ? "Peruvian Sol" : "Nepalese Rupee")));
-            correctCurrencyRequestBody.put("isBase", correctCurrency.equals("USD"));
+            // Don't send isBase - let the service determine it automatically
+            // If it's the first currency, it becomes base with rate 1.00
+            // If not, use the provided rate
             correctCurrencyRequestBody.put("exchangeRateToBase", correctCurrency.equals("USD") ? BigDecimal.ONE : 
                 (correctCurrency.equals("EUR") ? new BigDecimal("1.111111111111111111") :
                 (correctCurrency.equals("PEN") ? new BigDecimal("0.303030301557575744") : new BigDecimal("0.0075"))));
@@ -149,7 +151,9 @@ public class FinancialDataCreateSteps {
                 currencyRequestBody.put("name", currencyCode.equals("USD") ? "US Dollar" : 
                     (currencyCode.equals("EUR") ? "Euro" : 
                     (currencyCode.equals("PEN") ? "Peruvian Sol" : "Nepalese Rupee")));
-                currencyRequestBody.put("isBase", currencyCode.equals("USD"));
+                // Don't send isBase - let the service determine it automatically
+                // If it's the first currency, it becomes base with rate 1.00
+                // If not, use the provided rate
                 currencyRequestBody.put("exchangeRateToBase", currencyCode.equals("USD") ? BigDecimal.ONE : 
                     (currencyCode.equals("EUR") ? new BigDecimal("1.111111111111111111") :
                     (currencyCode.equals("PEN") ? new BigDecimal("0.303030302846212121") : new BigDecimal("0.0075"))));
