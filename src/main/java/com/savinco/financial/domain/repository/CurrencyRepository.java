@@ -13,6 +13,7 @@ public interface CurrencyRepository {
     List<Currency> findAll();
     Optional<Currency> findBaseCurrency();
     boolean existsByCode(CurrencyCode code);
+    long count();
     void deleteById(Long id);
     void deleteAll();
 }

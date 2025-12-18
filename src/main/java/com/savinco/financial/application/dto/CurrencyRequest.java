@@ -30,14 +30,16 @@ public class CurrencyRequest {
     @Schema(description = "Currency name", example = "Euro", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
-    @NotNull(message = "isBase is required")
-    @Schema(description = "Indicates if this is the base currency (USD). Only one currency can be base.", 
-            example = "false", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Indicates if this is the base currency. This field is ignored - the first currency created automatically becomes the base currency. " +
+            "If you try to set this to true when a base currency already exists, the request will be rejected.", 
+            example = "false", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private Boolean isBase;
 
     @NotNull(message = "Exchange rate to base is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Exchange rate must be positive")
-    @Schema(description = "Exchange rate to convert 1 unit of this currency to base currency (USD). Base currency rate must be 1.00", 
+    @Schema(description = "Exchange rate to convert 1 unit of this currency to base currency. " +
+            "For the first currency (which becomes base automatically), this value is ignored and set to 1.00. " +
+            "For subsequent currencies, this must be a positive value.", 
             example = "0.90", requiredMode = Schema.RequiredMode.REQUIRED)
     private BigDecimal exchangeRateToBase;
 }

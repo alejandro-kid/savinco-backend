@@ -3,9 +3,23 @@ Feature: Create Currency
   I want to create currency records
   So that I can manage currencies and their exchange rates
 
-  # SYNC: Happy path - Create non-base currency
+  # SYNC: Happy path - Create first currency (automatically becomes base)
+  Scenario: Successfully create first currency (automatically becomes base)
+    Given the API is running
+    And no currency exists with code "USD"
+    When I create currency with:
+      | code | name      | isBase | exchangeRateToBase |
+      | USD  | US Dollar | false  | 2.00              |
+    Then I should receive status code 201 immediately
+    And the response should contain currency code "USD"
+    And the response should contain currency name "US Dollar"
+    And the response should contain isBase "true"
+    And the response should contain exchangeRateToBase "1.00"
+
+  # SYNC: Happy path - Create non-base currency (after base exists)
   Scenario: Successfully create a non-base currency
     Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
     And no currency exists with code "EUR"
     When I create currency with:
       | code | name      | isBase | exchangeRateToBase |
@@ -16,8 +30,8 @@ Feature: Create Currency
     And the response should contain isBase "false"
     And the response should contain exchangeRateToBase "0.90"
 
-  # SYNC: Happy path - Create base currency (USD)
-  Scenario: Successfully create base currency USD
+  # SYNC: Happy path - Create base currency (USD) - first currency
+  Scenario: Successfully create base currency USD (first currency)
     Given the API is running
     And no currency exists with code "USD"
     When I create currency with:
@@ -51,7 +65,7 @@ Feature: Create Currency
   # SYNC: Error - Try to create second base currency
   Scenario: Fail to create currency when another base currency exists
     Given the API is running
-    And currency exists with code "USD" and isBase "true"
+    And currency exists with code "USD" and name "US Dollar"
     When I create currency with:
       | code | name      | isBase | exchangeRateToBase |
       | EUR  | Euro      | true   | 0.90              |
@@ -71,6 +85,7 @@ Feature: Create Currency
   # SYNC: Error - Zero exchange rate for non-base currency
   Scenario: Fail to create non-base currency with zero exchange rate
     Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
     And no currency exists with code "EUR"
     When I create currency with:
       | code | name | isBase | exchangeRateToBase |
