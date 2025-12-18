@@ -103,3 +103,23 @@ Feature: Create Financial Data Record
     And the response should contain capital saved in USD "1234567.89"
     And the response should contain capital loaned in USD "9876543.21"
     And the response should contain profits generated in USD "555555.55"
+
+  # SYNC: Bug fix validation - Create after delete (validates country_id and currency_id are properly set)
+  Scenario: Successfully create financial data after deleting previous record
+    Given the API is running
+    And financial data exists for country "ESP" with:
+      | currencyCode | capitalSaved | capitalLoaned | profitsGenerated |
+      | EUR          | 1000000.00   | 5000000.00    | 500000.00        |
+    When I delete financial data for country "ESP"
+    Then I should receive status code 204 immediately
+    When I create financial data with:
+      | countryCode | currencyCode | capitalSaved | capitalLoaned | profitsGenerated |
+      | ESP         | EUR          | 2000000.00   | 6000000.00    | 600000.00        |
+    Then I should receive status code 201 immediately
+    And the response should contain country code "ESP"
+    And the response should contain country name "España"
+    And the response should contain original currency "EUR"
+    And the response should contain capital saved in USD "2000000.00"
+    And the response should contain capital loaned in USD "6000000.00"
+    And the response should contain profits generated in USD "600000.00"
+    And the response should contain total in USD "8600000.00"

@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import com.savinco.financial.bdd.support.ApiUrlBuilder;
 import com.savinco.financial.bdd.support.TestContext;
 
-import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 

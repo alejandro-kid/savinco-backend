@@ -25,8 +25,14 @@ public class FinancialDataEntity {
     @Column(name = "country_code", nullable = false, length = 3)
     private String countryCode;
 
+    @Column(name = "country_id", nullable = false)
+    private Long countryId;
+
     @Column(name = "currency_code", nullable = false, length = 3)
     private String currencyCode;
+
+    @Column(name = "currency_id", nullable = false)
+    private Long currencyId;
 
     @Column(name = "capital_saved", nullable = false, precision = 19, scale = 2)
     private BigDecimal capitalSaved;
