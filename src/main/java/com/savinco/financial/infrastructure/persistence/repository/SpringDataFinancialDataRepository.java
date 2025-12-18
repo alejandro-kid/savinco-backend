@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface SpringDataFinancialDataRepository extends JpaRepository<FinancialDataEntity, Long> {
     Optional<FinancialDataEntity> findByCountryCode(String countryCode);
     boolean existsByCountryCode(String countryCode);
+    boolean existsByCountryId(Long countryId);
     void deleteByCountryCode(String countryCode);
 }

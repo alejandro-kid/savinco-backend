@@ -149,5 +149,11 @@ public class CountryCreateSteps {
         );
     }
 
+    @Given("no country exists with currency code {string}")
+    public void noCountryExistsWithCurrencyCode(String currencyCode) {
+        // This will be implemented when we have the repository/service
+        // For now, we assume clean state - no countries use this currency
+    }
+
 }
 

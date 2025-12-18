@@ -10,6 +10,7 @@ public interface FinancialDataRepository {
     FinancialData save(FinancialData financialData);
     Optional<FinancialData> findByCountryCode(CountryCode countryCode);
     boolean existsByCountryCode(CountryCode countryCode);
+    boolean existsByCountryId(Long countryId);
     void deleteByCountryCode(CountryCode countryCode);
     List<FinancialData> findAll();
     void deleteAll();
