@@ -10,6 +10,7 @@ import com.savinco.financial.domain.model.Currency;
 import com.savinco.financial.domain.model.CurrencyCode;
 import com.savinco.financial.domain.model.CurrencyPrimitives;
 import com.savinco.financial.domain.repository.CurrencyRepository;
+import com.savinco.financial.domain.repository.CountryRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class CurrencyService {
 
     private final CurrencyRepository repository;
+    private final CountryRepository countryRepository;
 
     @Transactional
     public Currency create(String code, String name, Boolean isBase, BigDecimal exchangeRateToBase) {
@@ -77,6 +79,21 @@ public class CurrencyService {
 
         // Save
         return repository.save(currency);
+    }
+
+    @Transactional
+    public void delete(String code) {
+        CurrencyCode currencyCode = new CurrencyCode(code);
+        Currency currency = repository.findByCode(currencyCode)
+            .orElseThrow(() -> new IllegalStateException("Currency not found with code: " + code));
+
+        // Validate that no countries are using this currency
+        if (countryRepository.existsByCurrencyId(currency.getId().getValue())) {
+            throw new IllegalStateException("Cannot delete currency with code: " + code + ". There are countries associated with this currency.");
+        }
+
+        // Delete
+        repository.deleteById(currency.getId().getValue());
     }
 }
 

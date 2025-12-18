@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface SpringDataCountryRepository extends JpaRepository<CountryEntity, Long> {
     Optional<CountryEntity> findByCode(String code);
     boolean existsByCode(String code);
+    boolean existsByCurrencyId(Long currencyId);
 }
 
