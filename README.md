@@ -1,250 +1,109 @@
-# Sistema de Gestión Financiera Multi-País - Savinco
+# Financial Data Management API
 
-## 📋 Descripción del Proyecto
+RESTful API for managing financial data across multiple countries with automatic currency conversion to USD. Built following **Domain-Driven Design** and **Hexagonal Architecture** principles.
 
-Sistema backend para la gestión y visualización de datos financieros de múltiples países (Ecuador, España, Perú y Nepal) con conversión automática de monedas a dólares estadounidenses (USD). La solución permite gestionar capital ahorrado, capital prestado y utilidades generadas, manteniendo la trazabilidad de los valores originales y proporcionando totales consolidados.
+## Overview
 
----
+The system manages financial data (capital saved, capital loaned, profits generated) for multiple countries, maintaining original currency values while providing consolidated summaries in USD. It supports currency management with automatic base currency assignment and exchange rate tracking.
 
-## 🔧 Stack Tecnológico
+## Architecture
 
-- **Backend**:
-  - Java 17
-  - Spring Boot 3 (Spring Web, Spring Data JPA, Spring Validation)
-  - PostgreSQL 15+ (o H2 en memoria para desarrollo)
-  - Lombok, MapStruct
-  - SpringDoc OpenAPI (Swagger)
-- **Testing**:
-  - JUnit 5, Mockito
-  - Cucumber + Gherkin (tests BDD)
-- **Herramientas**:
-  - Maven, Git, Docker (opcional)
+The project follows a **layered architecture** with clear separation of concerns:
 
----
+- **Domain Layer**: Pure business logic with Value Objects and domain entities
+- **Application Layer**: Use cases and business orchestration
+- **Infrastructure Layer**: JPA persistence and external integrations
+- **Presentation Layer**: REST controllers and DTOs
 
-## 📁 Estructura del Proyecto (Backend)
+Key design patterns:
 
-```bash
-backend/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/savinco/financial/
-│   │   │       ├── FinancialApplication.java
-│   │   │       ├── web/controller/
-│   │   │       │   ├── HealthController.java
-│   │   │       │   ├── FinancialDataController.java
-│   │   │       │   ├── CurrencyController.java
-│   │   │       │   └── CountryController.java
-│   │   │       ├── domain/
-│   │   │       │   ├── model/
-│   │   │       │   │   ├── FinancialData.java
-│   │   │       │   │   ├── Currency.java
-│   │   │       │   │   └── Country.java
-│   │   │       │   └── repository/
-│   │   │       │       ├── FinancialDataRepository.java
-│   │   │       │       ├── CurrencyRepository.java
-│   │   │       │       └── CountryRepository.java
-│   │   │       ├── application/
-│   │   │       │   ├── service/
-│   │   │       │   │   ├── FinancialDataService.java
-│   │   │       │   │   ├── CurrencyService.java
-│   │   │       │   │   ├── CountryService.java
-│   │   │       │   │   └── CurrencyConverterService.java
-│   │   │       │   └── dto/
-│   │   │       │       ├── FinancialDataRequest.java
-│   │   │       │       ├── FinancialDataResponse.java
-│   │   │       │       ├── ConsolidatedSummaryResponse.java
-│   │   │       │       ├── CurrencyRequest.java
-│   │   │       │       ├── CurrencyResponse.java
-│   │   │       │       ├── CountryRequest.java
-│   │   │       │       └── CountryResponse.java
-│   │   │       └── infrastructure/
-│   │   │           ├── persistence/entity/
-│   │   │           │   ├── FinancialDataEntity.java
-│   │   │           │   ├── CurrencyEntity.java
-│   │   │           │   └── CountryEntity.java
-│   │   │           └── persistence/repository/
-│   │   │               ├── JpaFinancialDataRepository.java
-│   │   │               ├── JpaCurrencyRepository.java
-│   │   │               └── JpaCountryRepository.java
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── application-test.yml
-│   └── test/
-│       ├── java/com/savinco/financial/
-│       │   ├── CucumberTest.java
-│       │   └── bdd/
-│       │       ├── stepdefinitions/HealthCheckSteps.java
-│       │       └── support/
-│       │           ├── CucumberHooks.java
-│       │           ├── TestConfiguration.java
-│       │           └── TestContext.java
-│       └── resources/
-│           └── features/health-check.feature
-├── pom.xml
-└── README.md
-```
+- Repository Pattern for data access abstraction
+- Value Objects for domain encapsulation
+- Factory methods for entity creation
+- DTOs for API contracts
 
----
+## Tech Stack
 
-## 🛠️ API REST (Backend)
+- **Java 17** - LTS version
+- **Spring Boot 3.2** - Web, Data JPA, Validation, Actuator
+- **PostgreSQL** - Primary database (H2 for testing)
+- **Flyway** - Database migrations
+- **Cucumber** - BDD testing
+- **TestContainers** - Integration testing
+- **SpringDoc OpenAPI** - API documentation
 
-### Health Check
+## Quick Start
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET`  | `/api/v1/health` | Verifica el estado de la API |
-
-**Ejemplo de respuesta:**
-
-```json
-{
-  "status": "UP",
-  "timestamp": "2025-12-13T13:45:42.332508743Z"
-}
-```
-
-### Financial Data (Base URL: `/api/v1/financial-data`)
-
-> Estos endpoints gestionan la información financiera por país y realizan la conversión a USD.
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET`  | `/` | Lista todos los países con datos en USD |
-| `GET`  | `/{countryCode}` | Obtiene datos de un país específico en USD |
-| `GET`  | `/summary` | Obtiene totales consolidados en USD |
-| `POST` | `/` | Crea un nuevo registro de país |
-| `PUT`  | `/{countryCode}` | Actualiza datos de un país |
-| `DELETE` | `/{countryCode}` | Elimina datos de un país |
-
-### Currency Management (Base URL: `/api/v1/currencies`)
-
-> Estos endpoints gestionan las monedas y sus tasas de cambio.
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET`  | `/` | Lista todas las monedas |
-| `GET`  | `/{code}` | Obtiene una moneda por código |
-| `POST` | `/` | Crea una nueva moneda |
-| `PUT`  | `/{code}/exchange-rate` | Actualiza la tasa de cambio de una moneda |
-
-### Country Management (Base URL: `/api/v1/countries`)
-
-> Estos endpoints gestionan los países y su relación con monedas.
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET`  | `/` | Lista todos los países |
-| `GET`  | `/{code}` | Obtiene un país por código |
-| `POST` | `/` | Crea un nuevo país |
-
-**Ejemplo de request (POST/PUT):**
-
-```json
-{
-  "countryCode": "ESP",
-  "currencyCode": "EUR",
-  "capitalSaved": 1000000.00,
-  "capitalLoaned": 5000000.00,
-  "profitsGenerated": 500000.00
-}
-```
-
-**Ejemplo de request para crear Currency (POST `/api/v1/currencies`):**
-
-```json
-{
-  "code": "EUR",
-  "name": "Euro",
-  "isBase": false,
-  "exchangeRateToBase": 1.1111111111
-}
-```
-
-**Ejemplo de request para crear Country (POST `/api/v1/countries`):**
-
-```json
-{
-  "code": "ESP",
-  "name": "España",
-  "currencyCode": "EUR"
-}
-```
-
----
-
-## 🚀 Instalación y Ejecución (Backend)
-
-### Prerrequisitos
+### Prerequisites
 
 - Java 17+
 - Maven 3.8+
-- (Opcional) PostgreSQL 15+
+- PostgreSQL 15+ (optional, H2 used by default)
 
-### Inicio rápido con H2 (desarrollo)
+### Run Application
 
 ```bash
-# 1. Clonar el repositorio
+# Clone and navigate
 git clone <repository-url>
 cd backend
 
-# 2. Compilar el proyecto
-mvn clean compile
-
-# 3. Ejecutar tests (recomendado)
-mvn test
-
-# 4. Ejecutar la aplicación con perfil de pruebas (H2 en memoria)
+# Run with H2 (in-memory database)
 mvn spring-boot:run -Dspring-boot.run.profiles=test
 
-# 5. Verificar health check
-curl http://localhost:8080/api/v1/health
-```
-
-### Ejecución con PostgreSQL
-
-Configura las credenciales en `application.yml` o mediante variables de entorno (`DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`) y ejecuta:
-
-```bash
+# Run with PostgreSQL
 mvn spring-boot:run
 ```
 
-La API estará disponible en `http://localhost:8080`.
+API available at `http://localhost:8080`
 
----
+### Database Setup
 
-## 🧪 Testing
-
-- **Tests unitarios y de integración**:
+Migrations are executed manually:
 
 ```bash
-mvn test
+mvn flyway:migrate \
+  -Dflyway.url=jdbc:postgresql://localhost:5432/savinco_financial \
+  -Dflyway.user=postgres \
+  -Dflyway.password=your_password
 ```
 
-- **Tests BDD con Cucumber** (runner principal):
+## API Documentation
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/api-docs`
+
+## Testing
 
 ```bash
+# Run all tests
+mvn test
+
+# Run BDD tests
 mvn test -Dtest=CucumberTest
 ```
 
-**Estado de tests:** 57 tests BDD pasando (1 health check + 9 POST + 10 GET + 11 PUT + 4 DELETE + 22 Currency/Country)
+## Features
+
+- Multi-country financial data management
+- Automatic currency conversion to USD
+- Consolidated financial summaries
+- Currency and country management
+- Request ID tracking for traceability
+- Structured logging
+- Comprehensive BDD test coverage
+
+## Configuration
+
+Environment variables:
+
+```bash
+DATABASE_URL=jdbc:postgresql://localhost:5432/savinco_financial
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+LOG_LEVEL_ROOT=INFO
+LOG_LEVEL_APP=DEBUG
+```
 
 ---
 
-## 📚 Documentación
-
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
-- **API Docs (OpenAPI JSON)**: `http://localhost:8080/api-docs`
-
----
-
-## 👤 Autor
-
-Desarrollado como parte de un reto técnico para el puesto de **Desarrollador Full Stack** en Savinco.
-
----
-
-## 📄 Licencia
-
-Este proyecto es parte de un reto técnico y no está destinado para uso comercial.
+**Technical Assessment Project** - Demonstrating clean architecture and domain-driven design practices.

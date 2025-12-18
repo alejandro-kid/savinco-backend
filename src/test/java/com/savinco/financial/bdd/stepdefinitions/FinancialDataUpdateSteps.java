@@ -58,8 +58,8 @@ public class FinancialDataUpdateSteps {
             // If it's the first currency, it becomes base with rate 1.00
             // If not, use the provided rate
             correctCurrencyRequestBody.put("exchangeRateToBase", correctCurrency.equals("USD") ? java.math.BigDecimal.ONE : 
-                (correctCurrency.equals("EUR") ? new java.math.BigDecimal("1.111111111111111111") :
-                (correctCurrency.equals("PEN") ? new java.math.BigDecimal("0.303030302846212121") : new java.math.BigDecimal("0.0075"))));
+                (correctCurrency.equals("EUR") ? new java.math.BigDecimal("0.90") :
+                (correctCurrency.equals("PEN") ? new java.math.BigDecimal("3.30") : new java.math.BigDecimal("133.0"))));
             
             String currencyUrl = urlBuilder.buildCurrencyUrl(port);
             HttpEntity<Map<String, Object>> correctCurrencyRequest = new HttpEntity<>(correctCurrencyRequestBody);
@@ -80,8 +80,8 @@ public class FinancialDataUpdateSteps {
                 // If it's the first currency, it becomes base with rate 1.00
                 // If not, use the provided rate
                 currencyRequestBody.put("exchangeRateToBase", currencyCode.equals("USD") ? java.math.BigDecimal.ONE : 
-                    (currencyCode.equals("EUR") ? new java.math.BigDecimal("1.111111111111111111") :
-                    (currencyCode.equals("PEN") ? new java.math.BigDecimal("0.303030302846212121") : new java.math.BigDecimal("0.0075"))));
+                    (currencyCode.equals("EUR") ? new java.math.BigDecimal("0.90") :
+                    (currencyCode.equals("PEN") ? new java.math.BigDecimal("3.30") : new java.math.BigDecimal("133.0"))));
                 
                 String currencyUrl = urlBuilder.buildCurrencyUrl(port);
                 HttpEntity<Map<String, Object>> currencyRequest = new HttpEntity<>(currencyRequestBody);
