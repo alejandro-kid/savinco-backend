@@ -35,3 +35,22 @@ Feature: Delete Currency
     When I delete currency with code "INVALID"
     Then I should receive status code 400 immediately
     And the response should contain error message about invalid currency code format
+
+  # SYNC: Happy path - Delete base currency when it's the only currency
+  Scenario: Successfully delete base currency when it's the only currency
+    Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
+    And no country exists with currency code "USD"
+    When I delete currency with code "USD"
+    Then I should receive status code 204 immediately
+    And the response body should be empty
+
+  # SYNC: Error - Cannot delete base currency when other currencies exist
+  Scenario: Fail to delete base currency when other currencies exist
+    Given the API is running
+    And currency exists with code "USD" and name "US Dollar"
+    And currency exists with code "EUR" and name "Euro"
+    And no country exists with currency code "USD"
+    When I delete currency with code "USD"
+    Then I should receive status code 409 immediately
+    And the response should contain error message about cannot delete base currency with other currencies

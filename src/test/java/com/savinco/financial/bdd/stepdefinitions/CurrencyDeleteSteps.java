@@ -59,4 +59,19 @@ public class CurrencyDeleteSteps {
         );
     }
 
+    @Then("the response should contain error message about cannot delete base currency with other currencies")
+    public void theResponseShouldContainErrorMessageAboutCannotDeleteBaseCurrencyWithOtherCurrencies() {
+        assertNotNull(testContext.getLastResponse(), "Response should not be null");
+        Map<String, Object> body = testContext.getLastResponseBodyAsMap();
+        assertNotNull(body, "Response body should not be null");
+        Object message = body.get("message");
+        assertNotNull(message, "Error message should not be null");
+        String messageStr = message.toString().toLowerCase();
+        assertTrue(
+            messageStr.contains("base currency") && 
+            (messageStr.contains("only currency") || messageStr.contains("cannot delete") || messageStr.contains("other currencies")),
+            "Error message should mention cannot delete base currency when other currencies exist: " + message
+        );
+    }
+
 }

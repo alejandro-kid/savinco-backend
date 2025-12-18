@@ -36,11 +36,15 @@ public class CurrencyController {
     private final CurrencyService currencyService;
 
     @PostMapping
-    @Operation(summary = "Create currency", description = "Create a new currency with exchange rate to base currency (USD)")
+    @Operation(summary = "Create currency", 
+               description = "Create a new currency with exchange rate to base currency. " +
+                           "The first currency created automatically becomes the base currency with rate 1.00. " +
+                           "Subsequent currencies cannot be marked as base. " +
+                           "The base currency's exchange rate cannot be changed.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Currency created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid request data or base currency already exists"),
-        @ApiResponse(responseCode = "409", description = "Currency already exists with this code")
+        @ApiResponse(responseCode = "400", description = "Invalid request data"),
+        @ApiResponse(responseCode = "409", description = "Currency already exists with this code or attempt to create base currency when one already exists")
     })
     public ResponseEntity<CurrencyResponse> create(@Valid @RequestBody CurrencyRequest request) {
         Currency currency = currencyService.create(
@@ -110,12 +114,15 @@ public class CurrencyController {
     }
 
     @DeleteMapping("/{code}")
-    @Operation(summary = "Delete currency", description = "Delete a currency. Cannot delete if countries are associated with it.")
+    @Operation(summary = "Delete currency", 
+               description = "Delete a currency. " +
+                           "Cannot delete if countries are associated with it. " +
+                           "Base currency can only be deleted if it is the only currency in the database.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Currency deleted successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid currency code format"),
         @ApiResponse(responseCode = "404", description = "Currency not found"),
-        @ApiResponse(responseCode = "409", description = "Cannot delete currency: countries are associated with it")
+        @ApiResponse(responseCode = "409", description = "Cannot delete currency: countries are associated with it, or base currency cannot be deleted when other currencies exist")
     })
     public ResponseEntity<Void> delete(
             @Parameter(description = "Currency code (USD, EUR, PEN, NPR)", example = "EUR", required = true)

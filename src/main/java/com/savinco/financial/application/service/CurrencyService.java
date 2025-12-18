@@ -31,22 +31,34 @@ public class CurrencyService {
             throw new IllegalStateException("Currency already exists with code: " + code);
         }
 
-        // Validate base currency constraint
-        if (isBase) {
-            repository.findBaseCurrency()
-                .ifPresent(existingBase -> {
-                    throw new IllegalStateException(
-                        "Base currency already exists: " + existingBase.getCode().getValue()
-                    );
-                });
+        // Determine if this will be the base currency
+        boolean willBeBase;
+        BigDecimal finalExchangeRate;
+        
+        long currencyCount = repository.count();
+        
+        if (currencyCount == 0) {
+            // First currency: automatically becomes base with rate = 1
+            willBeBase = true;
+            finalExchangeRate = BigDecimal.ONE;
+        } else {
+            // Not the first currency: cannot be base
+            if (isBase != null && isBase) {
+                throw new IllegalStateException(
+                    "Cannot create currency as base. Base currency already exists. " +
+                    "Only the first currency created becomes the base currency automatically."
+                );
+            }
+            willBeBase = false;
+            finalExchangeRate = exchangeRateToBase;
         }
 
         // Create domain entity
         Currency currency = Currency.create(CurrencyPrimitives.builder()
             .code(code)
             .name(name)
-            .isBase(isBase)
-            .exchangeRateToBase(exchangeRateToBase)
+            .isBase(willBeBase)
+            .exchangeRateToBase(finalExchangeRate)
             .build());
 
         // Save
@@ -90,6 +102,17 @@ public class CurrencyService {
         // Validate that no countries are using this currency
         if (countryRepository.existsByCurrencyId(currency.getId().getValue())) {
             throw new IllegalStateException("Cannot delete currency with code: " + code + ". There are countries associated with this currency.");
+        }
+
+        // Validate base currency deletion: can only delete base currency if it's the only currency
+        if (currency.isBase()) {
+            long currencyCount = repository.count();
+            if (currencyCount > 1) {
+                throw new IllegalStateException(
+                    "Cannot delete base currency with code: " + code + 
+                    ". Base currency can only be deleted if it is the only currency in the database."
+                );
+            }
         }
 
         // Delete
