@@ -5,12 +5,35 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Represents a currency with its exchange rate to the base currency (USD).
+ * 
+ * The exchangeRateToBase field represents: 1 USD (base currency) = X units of this currency
+ * 
+ * Examples:
+ * - USD (base currency): exchangeRateToBase = 1.00 (1 USD = 1 USD)
+ * - EUR: exchangeRateToBase = 0.90 (1 USD = 0.90 EUR)
+ * - PEN: exchangeRateToBase = 0.30 (1 USD = 0.30 PEN)
+ * 
+ * To convert an amount from this currency to USD:
+ * amountInUSD = amountInThisCurrency / exchangeRateToBase
+ */
 @Getter
 public class Currency {
     private final CurrencyId id;
     private final CurrencyCode code;
     private final CurrencyName name;
     private final boolean isBase;
+    
+    /**
+     * Exchange rate from base currency (USD) to this currency.
+     * Represents: 1 USD = exchangeRateToBase units of this currency
+     * 
+     * For base currency: must be 1.00
+     * For other currencies: must be > 0
+     * 
+     * Example: If exchangeRateToBase = 0.90 for EUR, then 1 USD = 0.90 EUR
+     */
     private BigDecimal exchangeRateToBase;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
@@ -46,6 +69,15 @@ public class Currency {
         this.updatedAt = updatedAt;
     }
 
+    /**
+     * Updates the exchange rate from base currency (USD) to this currency.
+     * 
+     * The newRate represents: 1 USD = newRate units of this currency
+     * 
+     * @param newRate The new exchange rate (must be > 0)
+     * @throws IllegalStateException if this is the base currency (base currency rate is always 1.00)
+     * @throws IllegalArgumentException if newRate is null or <= 0
+     */
     public void updateExchangeRate(BigDecimal newRate) {
         if (isBase) {
             throw new IllegalStateException("Cannot update exchange rate for base currency");

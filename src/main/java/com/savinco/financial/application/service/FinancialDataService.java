@@ -185,12 +185,20 @@ public class FinancialDataService {
         return buildResponse(saved);
     }
 
+    /**
+     * Generates a consolidated summary of all financial data converted to USD.
+     * 
+     * Conversion uses: amountInUSD = amountInOriginalCurrency / exchangeRateToBase
+     * where exchangeRateToBase represents: 1 USD = X units of original currency
+     */
     public ConsolidatedSummaryResponse getSummary() {
         log.debug("Generating consolidated summary");
         List<FinancialData> allData = repository.findAll();
 
         List<ConsolidatedSummaryResponse.CountrySummary> countrySummaries = allData.stream()
             .map(data -> {
+                // Convert each amount using: amountInUSD = amountInOriginalCurrency / exchangeRateToBase
+                // where exchangeRateToBase represents: 1 USD = X units of original currency
                 BigDecimal capitalSavedUSD = currencyConverter.convertToUSD(
                     data.getCurrency(), 
                     data.getCapitalSaved()
