@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -80,6 +81,21 @@ public class CountryController {
         Country country = countryService.findByCode(code);
         CountryResponse response = toResponse(country);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{code}")
+    @Operation(summary = "Delete country", description = "Delete a country. Cannot delete if financial data is associated with it.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Country deleted successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid country code format"),
+        @ApiResponse(responseCode = "404", description = "Country not found"),
+        @ApiResponse(responseCode = "409", description = "Cannot delete country: financial data is associated with it")
+    })
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "Country code (ECU, ESP, PER, NPL)", example = "ECU", required = true)
+            @PathVariable String code) {
+        countryService.delete(code);
+        return ResponseEntity.noContent().build();
     }
 
     private CountryResponse toResponse(Country country) {

@@ -1,6 +1,5 @@
 package com.savinco.financial.bdd.stepdefinitions;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -148,6 +147,12 @@ public class CountryCreateSteps {
             messageStr.contains("country") || messageStr.contains("invalid") || messageStr.contains("format"),
             "Error message should mention invalid country code format: " + message
         );
+    }
+
+    @Given("no country exists with currency code {string}")
+    public void noCountryExistsWithCurrencyCode(String currencyCode) {
+        // This will be implemented when we have the repository/service
+        // For now, we assume clean state - no countries use this currency
     }
 
 }

@@ -3,15 +3,12 @@ package com.savinco.financial.bdd.stepdefinitions;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
@@ -21,7 +18,7 @@ import com.savinco.financial.bdd.support.TestContext;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 
-public class CurrencyUpdateExchangeRateSteps {
+public class CountryDeleteSteps {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -35,24 +32,21 @@ public class CurrencyUpdateExchangeRateSteps {
     @LocalServerPort
     private int port;
 
-    @When("I update exchange rate for currency {string} to {string}")
-    public void iUpdateExchangeRateForCurrencyTo(String code, String newRate) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("exchangeRateToBase", new BigDecimal(newRate));
-
-        String url = urlBuilder.buildCurrencyExchangeRateUrl(port, code);
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody);
+    @When("I delete country with code {string}")
+    public void iDeleteCountryWithCode(String code) {
+        String url = urlBuilder.buildCountryUrl(port, code);
+        // Use ParameterizedTypeReference to handle both success (204) and error (4xx) responses
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
             url,
-            HttpMethod.PUT,
-            request,
+            HttpMethod.DELETE,
+            null,
             new ParameterizedTypeReference<Map<String, Object>>() {}
         );
         testContext.setLastResponse(response);
     }
 
-    @Then("the response should contain error message about cannot update base currency rate")
-    public void theResponseShouldContainErrorMessageAboutCannotUpdateBaseCurrencyRate() {
+    @Then("the response should contain error message about country having associated financial data")
+    public void theResponseShouldContainErrorMessageAboutCountryHavingAssociatedFinancialData() {
         assertNotNull(testContext.getLastResponse(), "Response should not be null");
         Map<String, Object> body = testContext.getLastResponseBodyAsMap();
         assertNotNull(body, "Response body should not be null");
@@ -60,9 +54,9 @@ public class CurrencyUpdateExchangeRateSteps {
         assertNotNull(message, "Error message should not be null");
         String messageStr = message.toString().toLowerCase();
         assertTrue(
-            messageStr.contains("base") || messageStr.contains("cannot") || messageStr.contains("update"),
-            "Error message should mention cannot update base currency rate: " + message
+            messageStr.contains("financial data") || messageStr.contains("associated") || messageStr.contains("cannot delete"),
+            "Error message should mention country having associated financial data: " + message
         );
     }
-}
 
+}

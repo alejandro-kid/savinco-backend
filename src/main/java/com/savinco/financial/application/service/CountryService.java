@@ -12,6 +12,7 @@ import com.savinco.financial.domain.model.Currency;
 import com.savinco.financial.domain.model.CurrencyCode;
 import com.savinco.financial.domain.repository.CountryRepository;
 import com.savinco.financial.domain.repository.CurrencyRepository;
+import com.savinco.financial.domain.repository.FinancialDataRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +22,7 @@ public class CountryService {
 
     private final CountryRepository repository;
     private final CurrencyRepository currencyRepository;
+    private final FinancialDataRepository financialDataRepository;
 
     @Transactional
     public Country create(String code, String name, String currencyCode) {
@@ -56,6 +58,21 @@ public class CountryService {
         CountryCode countryCode = new CountryCode(code);
         return repository.findByCode(countryCode)
             .orElseThrow(() -> new IllegalStateException("Country not found with code: " + code));
+    }
+
+    @Transactional
+    public void delete(String code) {
+        CountryCode countryCode = new CountryCode(code);
+        Country country = repository.findByCode(countryCode)
+            .orElseThrow(() -> new IllegalStateException("Country not found with code: " + code));
+
+        // Validate that no financial data is associated with this country
+        if (financialDataRepository.existsByCountryId(country.getId().getValue())) {
+            throw new IllegalStateException("Cannot delete country with code: " + code + ". There are financial data associated with this country.");
+        }
+
+        // Delete
+        repository.deleteById(country.getId().getValue());
     }
 }
 

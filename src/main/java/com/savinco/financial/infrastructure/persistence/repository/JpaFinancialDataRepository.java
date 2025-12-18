@@ -50,6 +50,11 @@ public class JpaFinancialDataRepository implements FinancialDataRepository {
     }
 
     @Override
+    public boolean existsByCountryId(Long countryId) {
+        return springDataRepository.existsByCountryId(countryId);
+    }
+
+    @Override
     public void deleteByCountryCode(CountryCode countryCode) {
         springDataRepository.deleteByCountryCode(countryCode.getValue());
     }
@@ -70,7 +75,9 @@ public class JpaFinancialDataRepository implements FinancialDataRepository {
         return FinancialDataEntity.builder()
             .id(domain.getId())
             .countryCode(domain.getCountry().getCode().getValue())
+            .countryId(domain.getCountry().getId().getValue())
             .currencyCode(domain.getCurrency().getCode().getValue())
+            .currencyId(domain.getCurrency().getId().getValue())
             .capitalSaved(domain.getCapitalSaved())
             .capitalLoaned(domain.getCapitalLoaned())
             .profitsGenerated(domain.getProfitsGenerated())

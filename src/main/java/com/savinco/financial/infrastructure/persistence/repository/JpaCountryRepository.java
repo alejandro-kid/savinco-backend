@@ -60,6 +60,11 @@ public class JpaCountryRepository implements CountryRepository {
     }
 
     @Override
+    public boolean existsByCurrencyId(Long currencyId) {
+        return springDataRepository.existsByCurrencyId(currencyId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         springDataRepository.deleteById(id);
     }
